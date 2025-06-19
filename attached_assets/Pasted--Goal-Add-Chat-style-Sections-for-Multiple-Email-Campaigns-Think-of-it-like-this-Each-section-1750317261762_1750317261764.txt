@@ -1,0 +1,139 @@
+🎯 Goal: Add “Chat-style” Sections for Multiple Email Campaigns
+Think of it like this:
+
+Each section = 1 campaign thread (e.g., Placement Drive, Admission Notice, Event Invite)
+
+You can create new sections (campaigns) dynamically
+
+Each section has:
+
+Its own email data
+
+Its own subject/message
+
+Its own email stats (sent/failed)
+
+Then below all that, you keep your Summary Dashboard, Logs, and Actions.
+
+🧱 Revised App Structure (Clean & Scalable)
+sql
+Copy
+Edit
+📌 Campaign Sections (like chat tabs):
+   - Placement Drive
+   - College Fest 2025
+   - Admission Notice
+   [+] Add New Section
+
+📤 Per Campaign Section View:
+   - Upload CSV (only for that section)
+   - Email Composer (subject + message with placeholders)
+   - Send Test / Send to All
+   - Progress: Sent, Failed, Pending (for that section)
+
+📊 Summary Section (Global):
+   - Total Emails Sent (all sections)
+   - Total Students (all sections)
+   - Email Logs (filter by section or export all)
+🔧 How to Implement in Replit (using Streamlit, if that's what you're using)
+1. Store Campaigns in Memory (or File/DB)
+python
+Copy
+Edit
+# This can be a dict of section names to campaign data
+if "campaigns" not in st.session_state:
+    st.session_state.campaigns = {
+        "Placement Drive": {},
+        "Admission Notice": {}
+    }
+2. Create Tab-like Sections for Campaigns
+python
+Copy
+Edit
+import streamlit as st
+
+tabs = list(st.session_state.campaigns.keys()) + ["➕ New Campaign"]
+selected_tab = st.sidebar.radio("📂 Campaign Sections", tabs)
+
+if selected_tab == "➕ New Campaign":
+    new_name = st.text_input("Enter new campaign name")
+    if st.button("Create Campaign"):
+        if new_name and new_name not in st.session_state.campaigns:
+            st.session_state.campaigns[new_name] = {}
+            st.success(f"Created campaign: {new_name}")
+            st.experimental_rerun()
+else:
+    st.header(f"📧 Campaign: {selected_tab}")
+    # Use selected_tab to load the CSV, message, etc.
+3. Load CSV & Compose Email (per section)
+python
+Copy
+Edit
+with st.form(f"Upload_{selected_tab}"):
+    uploaded = st.file_uploader("Upload CSV", key=selected_tab)
+    subject = st.text_input("Subject", f"Important Info for {{Section}}")
+    body = st.text_area("Message Body", "Dear {{Name}}, ...")
+    if st.form_submit_button("Save & Preview"):
+        # Save data to that campaign
+        st.session_state.campaigns[selected_tab]["csv"] = uploaded
+        st.session_state.campaigns[selected_tab]["subject"] = subject
+        st.session_state.campaigns[selected_tab]["body"] = body
+4. Send Emails (Just for That Campaign)
+python
+Copy
+Edit
+if "csv" in st.session_state.campaigns[selected_tab]:
+    data = pd.read_csv(st.session_state.campaigns[selected_tab]["csv"])
+    if st.button("Send to All"):
+        # loop through data and send emails
+        # update campaign summary
+5. Global Summary Panel
+At the bottom or in a separate tab:
+
+python
+Copy
+Edit
+st.markdown("## 📊 Summary Dashboard")
+# Loop through st.session_state.campaigns
+# Show total sent, failed, etc.
+🖼️ Visual Flow:
+mathematica
+Copy
+Edit
+Sidebar:
+[📂 Placement Drive]
+[📂 Admission Notice]
+[📂 Event Invite]
+[➕ New Campaign]
+
+Main Panel:
+[Upload CSV] [Subject] [Message Body] [Send Button] [Per-section summary]
+
+Summary Section (Bottom or in Tab):
+Total Emails Sent: 420
+Failed: 3
+Pending: 21
+[Export Logs]
+💡 Naming Suggestion for Sections
+These can be like:
+
+Placement_Drive_Jan_2025
+
+College_Fest_March
+
+New_Student_Orientation
+
+You can even add emoji prefixes to make it look more interactive:
+
+🎓 Placement Drive
+
+🎉 College Fest
+
+📝 Admission Info
+
+✅ What You Gain with This Upgrade
+Feature	Benefit
+Multiple Campaigns	Send tailored messages to different groups at the same time
+“Chat-style” Sections	Feels like separate conversations
+Better Stats per Section	Know which campaign performed better
+Reusability	Reuse campaigns or edit/update over time

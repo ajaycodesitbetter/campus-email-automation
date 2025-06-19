@@ -1,0 +1,124 @@
+📄 Product Requirements Document (PRD)
+✅ Project Title:
+Campus Email Automation System
+
+1. 🔍 Overview
+This is a web-based or spreadsheet-integrated tool to send personalized bulk emails to students regarding placements, admissions, or notices. It should support section-based messaging (like CSE, ECE, MBA) and provide a simple UI to manage and track emails.
+
+2. 🎯 Goals
+✅ Send personalized or batch emails to up to 1000 students
+
+✅ Support separate sections like “chat tabs” (e.g., CSE, MBA)
+
+✅ Upload or input recipient list via CSV or spreadsheet
+
+✅ Track who got the message (Status column)
+
+✅ Fully free to use (no paid APIs)
+
+✅ Easy to use by college staff or coordinators
+
+3. 👤 User Personas
+Role	Actions
+Placement/Admission Coordinator	Upload student list, write email, send in bulk
+College Staff	Filter by section, preview emails, send to individuals or sections
+Admin (optional)	Access logs, change system settings (sender email, limits, etc.)
+
+4. 💡 Features & Functional Requirements
+4.1 📤 Email Sending
+Upload a .csv file (columns: Email, Name, Section, Subject, Message)
+
+Send email to:
+
+All recipients
+
+Selected section only
+
+Selected individual(s)
+
+4.2 🧾 Section Tabs or Filters
+Auto-group users by Section column (e.g., CSE, ECE, MBA)
+
+Each section behaves like a tab/chat
+
+You can edit the message for each section separately
+
+4.3 📝 Email Composer
+Write Subject + Message for each section
+
+Message should support placeholders:
+
+{{Name}} → auto-replace with student name
+
+{{Section}} → auto-fill section name
+
+4.4 🧮 Tracking & Logs
+Add a “Status” column: Sent, Failed, or Pending
+
+Date and time of sending
+
+Export logs as .csv
+
+4.5 📁 CSV Import
+Accept CSV with headers:
+Name, Email, Section, Subject, Message
+
+Detect duplicates or invalid emails
+
+4.6 🛡️ Free Email Support
+Use Gmail SMTP (App Password or OAuth)
+
+Support max Gmail limits (100/day personal, 1500/day edu/org)
+
+5. 🔧 Technical Requirements
+Area	Details
+Tech Stack	Google Sheets + Apps Script OR Streamlit + Python SMTP
+Hosting	Google Cloud (Apps Script), Streamlit Cloud, or run locally
+DB (Optional)	Google Sheet itself OR Firebase (for advanced use)
+Email Sender	Gmail SMTP with App Password (secure)
+Cost	Fully Free to use and maintain
+
+6. 🖼️ User Interface (UI) Suggestions
+Page/Tab	Functionality
+Dashboard	Show stats (sent/failed), upload CSV, view logs
+Sections (CSE, MBA...)	Like tabs or expandable panels
+Email Composer	Per-section composer with placeholder support
+Log Viewer	Table with all sent emails, statuses, timestamps
+
+7. 🚫 Out of Scope (for now)
+Student login or reply system
+
+Email open/click tracking
+
+Attachments support
+
+SMS or WhatsApp integration
+
+8. ✅ Success Criteria
+Can send emails to 100+ students without failure
+
+Section-based message sending works correctly
+
+Message personalization works (e.g., “Hello Ravi…”)
+
+Easy to update list and re-send to others
+
+No cost to run or maintain
+
+9. 📦 Deliverables
+Item	Description
+App UI or Sheet	CSV uploader, message editor, section filter
+Sending Engine	Email sending logic (with Gmail SMTP or Apps Script)
+Logs	Table of email sent, status, section, timestamp
+Deployment	Hosted on Streamlit, Apps Script, or GitHub with instructions
+
+10. 🔑 Optional Enhancements (Future)
+Admin login (to limit access)
+
+Template saving
+
+Schedule sending (future date)
+
+Multi-language support
+
+Attachments (PDF notice, etc.)
