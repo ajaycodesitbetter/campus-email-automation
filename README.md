@@ -76,6 +76,26 @@ Optional columns:
 - `DATABASE_URL`: PostgreSQL connection string
 - `NODE_ENV`: development/production
 
+## Local Development
+
+To set up this project locally after downloading from Replit:
+
+1. **Configure Environment Variables**
+   - Create a `.env` file in the project root
+   - Add the following variables:
+     ```
+     NODE_ENV=development
+     DATABASE_URL=<your-postgres-connection-string>
+     ```
+
+2. **Initialize Database**
+   - Run `npm run db:push` to create all required tables
+   - If migrating from Replit, export data or use the same database URL
+
+3. **Configure Email Settings**
+   - The app will prompt you to set up Gmail credentials on first run
+   - Use a Gmail account with an app-specific password
+
 ## Contributing
 
 1. Fork the repository
