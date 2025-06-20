@@ -4,13 +4,13 @@ import { storage } from '../storage';
 
 async function testEmailService() {
   try {
-    console.log('🚀 Starting email service test...');
+    console.log('🚀 Starting email service test with limit testing...');
     
     // 1. Configure email settings from environment variables
     const emailConfig = {
       senderEmail: process.env.GMAIL_USER || '',
       senderPassword: process.env.GMAIL_APP_PASSWORD?.replace(/\s/g, '') || '',
-      dailyLimit: parseInt(process.env.EMAIL_DAILY_LIMIT || '1500', 10),
+      dailyLimit: 3, // Override with a small limit for testing
       usedToday: 0
     };
 
@@ -49,17 +49,37 @@ async function testEmailService() {
       `
     };
     
-    // 5. Send the test email
-    console.log(`📤 Sending test email to ${testEmail.to}...`);
-    await emailService.sendEmail(testEmail);
+    // 5. Send multiple test emails to test the daily limit
+    const totalAttempts = 4; // Try to send one more than the limit
     
-    console.log('✅ Email sent successfully!');
+    for (let i = 1; i <= totalAttempts; i++) {
+      try {
+        console.log(`📤 Sending test email ${i}/${totalAttempts} to ${testEmail.to}...`);
+        
+        // Update the email subject for each attempt
+        const emailWithCounter = {
+          ...testEmail,
+          subject: `Campus Email Automation Test #${i}`
+        };
+        
+        await emailService.sendEmail(emailWithCounter);
+        console.log(`✅ Email #${i} sent successfully!`);
+        
+        // Get and display current usage stats
+        const updatedConfig = await storage.getEmailConfig();
+        console.log(`📊 Current usage: ${updatedConfig?.usedToday || 0}/${updatedConfig?.dailyLimit || 3}`);
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('Daily email limit reached')) {
+          console.log(`🛑 Daily limit reached at attempt #${i}/${totalAttempts}`);
+          console.log(`📊 Limit test successful! System correctly blocked sending after reaching the limit.`);
+        } else {
+          // Re-throw if it's not the expected limit error
+          throw error;
+        }
+      }
+    }
     
-    // 6. Get and display current usage stats
-    const config = await storage.getEmailConfig();
-    console.log(`📊 Current usage: ${config?.usedToday || 0}/${config?.dailyLimit || 1500}`);
-    
-    console.log('🎉 Email service test completed successfully!');
+    console.log('🎉 Email service limit test completed successfully!');
   } catch (error) {
     console.error('❌ Email service test failed:');
     if (error instanceof Error) {
