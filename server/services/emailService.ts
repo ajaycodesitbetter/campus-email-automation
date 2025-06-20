@@ -1,5 +1,5 @@
-import nodemailer from 'nodemailer';
-import { storage } from '../storage';
+import nodemailer from "nodemailer";
+import { storage } from "../storage";
 
 export interface EmailData {
   to: string;
@@ -14,11 +14,11 @@ export class EmailService {
   async initialize() {
     const config = await storage.getEmailConfig();
     if (!config) {
-      throw new Error('Email configuration not found');
+      throw new Error("Email configuration not found");
     }
 
-    this.transporter = nodemailer.createTransporter({
-      service: 'gmail',
+    this.transporter = nodemailer.createTransport({
+      service: "gmail",
       auth: {
         user: config.senderEmail,
         pass: config.senderPassword,
@@ -35,17 +35,17 @@ export class EmailService {
     }
 
     if (!this.transporter) {
-      throw new Error('Email service not initialized');
+      throw new Error("Email service not initialized");
     }
 
     const config = await storage.getEmailConfig();
     if (!config) {
-      throw new Error('Email configuration not found');
+      throw new Error("Email configuration not found");
     }
 
     // Check daily limit
     if ((config.usedToday || 0) >= (config.dailyLimit || 1500)) {
-      throw new Error('Daily email limit reached');
+      throw new Error("Daily email limit reached");
     }
 
     // Send email
@@ -76,7 +76,7 @@ export class EmailService {
         sent++;
       } catch (error) {
         failed++;
-        errors.push(`Failed to send to ${emails[i].to}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        errors.push(`Failed to send to ${emails[i].to}: ${error instanceof Error ? error.message : "Unknown error"}`);
       }
       
       if (onProgress) {
