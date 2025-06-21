@@ -1,4 +1,4 @@
-# Campus Email Automation - Progress & TODO
+# Campus Email Automation - Progress & TOD
 
 ## Project Overview
 **Campus Email Automation** is an email service system for automating communication with students, faculty, and staff at educational institutions. The system provides bulk email capabilities with personalization, rate limiting, and campaign management.
