@@ -58,12 +58,14 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  const port = 5000;
+  // Use environment PORT or default to 5000
+  // Railway and other platforms provide PORT via environment
+  const port = parseInt(process.env.PORT || "5000");
+  const host = process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost";
+  
   server.listen({
     port,
-    host: "localhost"
+    host
   }, () => {
     log(`serving on port ${port}`);
   });
