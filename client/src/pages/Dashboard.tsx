@@ -82,7 +82,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <span className="mr-2">📧</span>
-                  <span>{config?.senderEmail || 'admin@college.edu'}</span>
+                  <span>{config?.senderEmail || 'Not configured'}</span>
                 </div>
                 <Button
                   variant="ghost"
