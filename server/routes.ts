@@ -40,6 +40,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // Email configuration sync endpoint (no auth required for setup)
+  app.post("/api/sync-email-config", async (req, res) => {
+    try {
+      console.log('🔄 Syncing email configuration from environment variables...');
+      
+      // Get environment variables
+      const gmailUser = process.env.GMAIL_USER;
+      const gmailPassword = process.env.GMAIL_APP_PASSWORD;
+      const dailyLimit = parseInt(process.env.EMAIL_DAILY_LIMIT || '150');
+      
+      if (!gmailUser || !gmailPassword) {
+        return res.status(400).json({
+          error: 'Missing email environment variables',
+          required: ['GMAIL_USER', 'GMAIL_APP_PASSWORD']
+        });
+      }
+      
+      // Check existing configuration
+      const existingConfig = await storage.getEmailConfig();
+      
+      // Create or update the email configuration
+      const config = await storage.createOrUpdateEmailConfig({
+        senderEmail: gmailUser,
+        senderPassword: gmailPassword,
+        dailyLimit: dailyLimit,
+        usedToday: existingConfig?.usedToday || 0,
+        lastResetDate: existingConfig?.lastResetDate || new Date(),
+        configured: true
+      });
+      
+      res.json({
+        message: 'Email configuration synced successfully',
+        config: {
+          senderEmail: config.senderEmail,
+          dailyLimit: config.dailyLimit,
+          usedToday: config.usedToday || 0,
+          configured: config.configured
+        }
+      });
+    } catch (error) {
+      console.error('Sync email config error:', error);
+      res.status(500).json({ error: 'Failed to sync email configuration' });
+    }
+  });
+  
   // Authentication routes (no auth required)
   
   // Login route
