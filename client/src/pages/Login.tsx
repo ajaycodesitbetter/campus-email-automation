@@ -89,9 +89,10 @@ export default function Login() {
           </form>
           
           <div className="mt-4 text-center text-sm text-gray-600">
-            <p>Default credentials:</p>
-            <p><strong>Username:</strong> admin</p>
-            <p><strong>Password:</strong> admin123</p>
+            <p>Enter your college admin credentials</p>
+            <p className="text-xs text-gray-500 mt-2">
+              Contact your system administrator for access credentials
+            </p>
           </div>
         </CardContent>
       </Card>
