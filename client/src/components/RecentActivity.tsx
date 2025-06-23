@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { History, Download, SquareCheck, Trash } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import EmailLogExport from "@/components/EmailLogExport";
+import EmailValidator from "@/components/EmailValidator";
+import ActivityLogViewer from "@/components/ActivityLogViewer";
 
 interface ActivityLog {
   id: number;
@@ -13,7 +16,11 @@ interface ActivityLog {
   metadata?: any;
 }
 
-export default function RecentActivity() {
+interface RecentActivityProps {
+  campaignId?: number | null;
+}
+
+export default function RecentActivity({ campaignId }: RecentActivityProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -138,18 +145,7 @@ export default function RecentActivity() {
                 </div>
               ))}
               <div className="p-4">
-                <Button
-                  variant="ghost"
-                  className="w-full text-primary hover:bg-blue-50"
-                  onClick={() => {
-                    toast({
-                      title: "View All Logs",
-                      description: "Full log viewer coming soon!",
-                    });
-                  }}
-                >
-                  View All Logs
-                </Button>
+                <ActivityLogViewer />
               </div>
             </>
           ) : (
@@ -169,32 +165,8 @@ export default function RecentActivity() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6 space-y-3">
-          <Button
-            variant="ghost"
-            className="w-full bg-gray-50 hover:bg-gray-100 text-gray-700 p-3 text-left justify-start"
-            onClick={() => {
-              toast({
-                title: "Export Logs",
-                description: "Export functionality coming soon!",
-              });
-            }}
-          >
-            <Download className="mr-3 h-4 w-4 text-gray-600" />
-            Export Email Logs
-          </Button>
-          <Button
-            variant="ghost"
-            className="w-full bg-gray-50 hover:bg-gray-100 text-gray-700 p-3 text-left justify-start"
-            onClick={() => {
-              toast({
-                title: "Validate Emails",
-                description: "Email validation coming soon!",
-              });
-            }}
-          >
-            <SquareCheck className="mr-3 h-4 w-4 text-gray-600" />
-            Validate Email Addresses
-          </Button>
+          <EmailLogExport campaignId={campaignId} />
+          <EmailValidator campaignId={campaignId} />
           <Button
             variant="ghost"
             className="w-full bg-gray-50 hover:bg-gray-100 text-gray-700 p-3 text-left justify-start"
