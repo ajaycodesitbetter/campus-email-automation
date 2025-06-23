@@ -17,14 +17,30 @@ export default function Dashboard() {
   const [selectedCampaign, setSelectedCampaign] = useState<number | null>(null);
   const { user, logout, isLoggingOut } = useAuth();
   
-  const { data: config } = useQuery({
+  interface EmailConfig {
+    senderEmail: string;
+    dailyLimit: number;
+    usedToday: number;
+    configured: boolean;
+  }
+  
+  interface Campaign {
+    id: number;
+    name: string;
+    description: string;
+    emoji: string;
+    createdAt: string;
+  }
+  
+  const { data: config } = useQuery<EmailConfig>({
     queryKey: ["/api/email-config"],
   });
-
-  const { data: selectedCampaignData } = useQuery({
-    queryKey: ["/api/campaigns", selectedCampaign],
-    enabled: !!selectedCampaign,
+  
+  const { data: campaigns = [] } = useQuery<Campaign[]>({
+    queryKey: ["/api/campaigns"],
   });
+  
+  const selectedCampaignData = campaigns.find(c => c.id === selectedCampaign);
 
   const handleLogout = async () => {
     try {

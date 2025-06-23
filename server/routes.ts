@@ -30,6 +30,16 @@ declare module 'express-session' {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint (no auth required)
+  app.get("/api/health", (req, res) => {
+    res.json({ 
+      status: "ok", 
+      message: "Campus Email Automation API is running",
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || "development"
+    });
+  });
+  
   // Authentication routes (no auth required)
   
   // Login route

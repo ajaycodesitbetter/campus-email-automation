@@ -29,7 +29,7 @@ export default function CampaignSidebar({ selectedCampaign, onSelectCampaign }: 
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: campaigns, isLoading } = useQuery({
+  const { data: campaigns = [], isLoading } = useQuery<Campaign[]>({
     queryKey: ["/api/campaigns"],
   });
 

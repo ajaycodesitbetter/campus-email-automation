@@ -5,11 +5,19 @@ import { useToast } from "@/hooks/use-toast";
 import { History, Download, SquareCheck, Trash } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
+interface ActivityLog {
+  id: number;
+  action: string;
+  description: string;
+  createdAt: string;
+  metadata?: any;
+}
+
 export default function RecentActivity() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: activities, isLoading } = useQuery({
+  const { data: activities = [], isLoading } = useQuery<ActivityLog[]>({
     queryKey: ["/api/activity-logs"],
   });
 

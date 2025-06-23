@@ -22,7 +22,14 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: config, isLoading } = useQuery({
+  interface EmailConfig {
+    senderEmail: string;
+    dailyLimit: number;
+    usedToday: number;
+    configured: boolean;
+  }
+  
+  const { data: config, isLoading } = useQuery<EmailConfig>({
     queryKey: ["/api/email-config"],
   });
 
