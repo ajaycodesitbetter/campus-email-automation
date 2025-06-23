@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { getApiUrl } from "@/lib/api";
 
 interface User {
   id: number;
@@ -17,7 +18,7 @@ interface LoginData {
 // API functions
 const authApi = {
   login: async (credentials: LoginData): Promise<{ user: User }> => {
-    const response = await fetch("/api/auth/login", {
+    const response = await fetch(getApiUrl("/api/auth/login"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -33,7 +34,7 @@ const authApi = {
   },
 
   logout: async (): Promise<void> => {
-    const response = await fetch("/api/auth/logout", {
+    const response = await fetch(getApiUrl("/api/auth/logout"), {
       method: "POST",
       credentials: "include",
     });
@@ -44,7 +45,7 @@ const authApi = {
   },
 
   getCurrentUser: async (): Promise<{ user: User }> => {
-    const response = await fetch("/api/auth/me", {
+    const response = await fetch(getApiUrl("/api/auth/me"), {
       credentials: "include",
     });
 
@@ -70,6 +71,9 @@ export function useAuth() {
     queryFn: authApi.getCurrentUser,
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    // If the request fails, treat it as not authenticated instead of loading
+    throwOnError: false,
   });
 
   // Login mutation
