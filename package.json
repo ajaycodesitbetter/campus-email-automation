@@ -5,6 +5,9 @@
   "license": "MIT",
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
+    "dev:frontend": "vite",
+    "dev:backend": "cross-env NODE_ENV=development tsx server/index.ts",
+    "dev:full": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --external:jquery --external:jsdom --external:canvas --external:@mapbox/node-pre-gyp",
     "build:frontend": "vite build",
     "build:server": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --external:jquery --external:jsdom --external:canvas --external:@mapbox/node-pre-gyp",
@@ -111,6 +114,7 @@
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
     "@types/ws": "^8.5.13",
+    "concurrently": "^9.2.0",
     "cross-env": "^7.0.3",
     "drizzle-kit": "^0.31.1",
     "tsx": "^4.20.3"

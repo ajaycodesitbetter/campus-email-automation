@@ -90,12 +90,8 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesnt interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  }
+  // In development, run as API-only server
+  // Frontend will be served separately via Vite dev server on port 5173
   // In production, this is an API-only server
   // Frontend is served separately via Netlify
 
