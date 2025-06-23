@@ -1,4 +1,4 @@
-import { campaigns, students, emailLogs, emailConfig, activityLogs, type Campaign, type InsertCampaign, type Student, type InsertStudent, type EmailLog, type InsertEmailLog, type EmailConfig, type InsertEmailConfig, type ActivityLog, type InsertActivityLog } from "@shared/schema";
+import { campaigns, students, emailLogs, emailConfig, activityLogs, users, type Campaign, type InsertCampaign, type Student, type InsertStudent, type EmailLog, type InsertEmailLog, type EmailConfig, type InsertEmailConfig, type ActivityLog, type InsertActivityLog, type User, type InsertUser } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
@@ -32,6 +32,14 @@ export interface IStorage {
   // Activity Logs
   getActivityLogs(limit?: number): Promise<ActivityLog[]>;
   createActivityLog(log: InsertActivityLog): Promise<ActivityLog>;
+  
+  // Users
+  getUserById(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUserLastLogin(id: number): Promise<void>;
+  updateUserPassword(id: number, passwordHash: string): Promise<void>;
   
   // Stats
   getStats(campaignId?: number): Promise<{
@@ -210,6 +218,50 @@ export class DatabaseStorage implements IStorage {
       .values(insertLog)
       .returning();
     return log;
+  }
+
+  // Users
+  async getUserById(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async updateUserLastLogin(id: number): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        lastLoginAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id));
+  }
+
+  async updateUserPassword(id: number, passwordHash: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        passwordHash,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id));
   }
 
   async getStats(campaignId?: number): Promise<{

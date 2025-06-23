@@ -1,19 +1,131 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import { storage } from "./storage";
 import { emailService } from "./services/emailService";
 import { csvService } from "./services/csvService";
-import { insertStudentSchema, insertEmailConfigSchema, insertCampaignSchema } from "@shared/schema";
+import { AuthService } from "./services/authService";
+import { insertStudentSchema, insertEmailConfigSchema, insertCampaignSchema, loginSchema } from "@shared/schema";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
+// Authentication middleware
+const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  next();
+};
+
+// Extend session type
+declare module 'express-session' {
+  interface SessionData {
+    userId: number;
+    username: string;
+    role: string;
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Authentication routes (no auth required)
+  
+  // Login route
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const validatedData = loginSchema.parse(req.body);
+      const user = await AuthService.authenticateUser(validatedData);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+      
+      // Set session
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      req.session.role = user.role;
+      
+      // Log activity
+      await storage.createActivityLog({
+        action: "USER_LOGIN",
+        description: `User ${user.username} logged in`,
+        metadata: { userId: user.id, username: user.username }
+      });
+      
+      res.json({
+        message: "Login successful",
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role
+        }
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(400).json({ error: "Invalid login data" });
+    }
+  });
+  
+  // Logout route
+  app.post("/api/auth/logout", (req, res) => {
+    if (req.session.userId) {
+      const username = req.session.username;
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Session destroy error:', err);
+          return res.status(500).json({ error: "Failed to logout" });
+        }
+        
+        // Log activity (fire and forget since session is destroyed)
+        storage.createActivityLog({
+          action: "USER_LOGOUT",
+          description: `User ${username} logged out`,
+          metadata: { username }
+        }).catch(console.error);
+        
+        res.json({ message: "Logout successful" });
+      });
+    } else {
+      res.json({ message: "Already logged out" });
+    }
+  });
+  
+  // Check authentication status
+  app.get("/api/auth/me", async (req, res) => {
+    if (!req.session || !req.session.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const user = await storage.getUserById(req.session.userId);
+      if (!user || !user.isActive) {
+        req.session.destroy(() => {});
+        return res.status(401).json({ error: "User not found or inactive" });
+      }
+      
+      res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role
+        }
+      });
+    } catch (error) {
+      console.error('Auth check error:', error);
+      res.status(500).json({ error: "Failed to check authentication" });
+    }
+  });
+  
+  // Protected routes (require authentication)
+  
   // Get campaigns
-  app.get("/api/campaigns", async (req, res) => {
+  app.get("/api/campaigns", requireAuth, async (req, res) => {
     try {
       const campaigns = await storage.getCampaigns();
       res.json(campaigns);
@@ -23,7 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create campaign
-  app.post("/api/campaigns", async (req, res) => {
+  app.post("/api/campaigns", requireAuth, async (req, res) => {
     try {
       const validatedData = insertCampaignSchema.parse(req.body);
       const campaign = await storage.createCampaign(validatedData);
@@ -42,7 +154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get campaign stats
-  app.get("/api/campaigns/:id/stats", async (req, res) => {
+  app.get("/api/campaigns/:id/stats", requireAuth, async (req, res) => {
     try {
       const campaignId = parseInt(req.params.id);
       const stats = await storage.getCampaignStats(campaignId);
@@ -53,7 +165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete campaign
-  app.delete("/api/campaigns/:id", async (req, res) => {
+  app.delete("/api/campaigns/:id", requireAuth, async (req, res) => {
     try {
       const campaignId = parseInt(req.params.id);
       await storage.deleteCampaign(campaignId);
@@ -71,7 +183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get dashboard stats
-  app.get("/api/stats", async (req, res) => {
+  app.get("/api/stats", requireAuth, async (req, res) => {
     try {
       const { campaignId } = req.query;
       const stats = await storage.getStats(campaignId ? parseInt(campaignId as string) : undefined);
@@ -87,7 +199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all students
-  app.get("/api/students", async (req, res) => {
+  app.get("/api/students", requireAuth, async (req, res) => {
     try {
       const { section, campaignId } = req.query;
       let students;
@@ -107,7 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get unique sections
-  app.get("/api/sections", async (req, res) => {
+  app.get("/api/sections", requireAuth, async (req, res) => {
     try {
       const { campaignId } = req.query;
       const cId = campaignId ? parseInt(campaignId as string) : undefined;
@@ -120,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload CSV
-  app.post("/api/upload-csv", upload.single('file'), async (req, res) => {
+  app.post("/api/upload-csv", requireAuth, upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
@@ -173,7 +285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Send bulk email
-  app.post("/api/send-bulk", async (req, res) => {
+  app.post("/api/send-bulk", requireAuth, async (req, res) => {
     try {
       const { subject, message, targetSection } = req.body;
 
@@ -265,7 +377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Send individual email
-  app.post("/api/send-individual", async (req, res) => {
+  app.post("/api/send-individual", requireAuth, async (req, res) => {
     try {
       const { studentId, subject, message } = req.body;
 
@@ -325,7 +437,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get email configuration
-  app.get("/api/email-config", async (req, res) => {
+  app.get("/api/email-config", requireAuth, async (req, res) => {
     try {
       const config = await storage.getEmailConfig();
       if (!config) {
@@ -349,7 +461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Send test email
-  app.post("/api/send-test", async (req, res) => {
+  app.post("/api/send-test", requireAuth, async (req, res) => {
     try {
       const { testEmail, subject, message } = req.body;
 
@@ -389,7 +501,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update email configuration
-  app.post("/api/email-config", async (req, res) => {
+  app.post("/api/email-config", requireAuth, async (req, res) => {
     try {
       const validatedData = insertEmailConfigSchema.parse(req.body);
       const config = await storage.createOrUpdateEmailConfig(validatedData);
@@ -419,7 +531,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get email logs
-  app.get("/api/email-logs", async (req, res) => {
+  app.get("/api/email-logs", requireAuth, async (req, res) => {
     try {
       const { campaignId } = req.query;
       const cId = campaignId ? parseInt(campaignId as string) : undefined;
@@ -431,7 +543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get activity logs
-  app.get("/api/activity-logs", async (req, res) => {
+  app.get("/api/activity-logs", requireAuth, async (req, res) => {
     try {
       const { limit } = req.query;
       const logs = await storage.getActivityLogs(limit ? parseInt(limit as string) : undefined);
@@ -442,7 +554,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Clear all data
-  app.delete("/api/clear-data", async (req, res) => {
+  app.delete("/api/clear-data", requireAuth, async (req, res) => {
     try {
       const { campaignId } = req.query;
       const cId = campaignId ? parseInt(campaignId as string) : undefined;

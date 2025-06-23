@@ -1,19 +1,21 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { GraduationCap, Settings } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import CampaignSidebar from "@/components/CampaignSidebar";
-import CampaignMetrics from "@/components/CampaignMetrics";
-import StatsCards from "@/components/StatsCards";
-import FileUpload from "@/components/FileUpload";
-import EmailComposer from "@/components/EmailComposer";
-import GmailConfig from "@/components/GmailConfig";
-import StudentTable from "@/components/StudentTable";
-import RecentActivity from "@/components/RecentActivity";
+import { GraduationCap, Settings, LogOut, User } from "lucide-react";
+import { Button } from "../components/ui/button";
+import { useAuth } from "../hooks/useAuth";
+import CampaignSidebar from "../components/CampaignSidebar";
+import CampaignMetrics from "../components/CampaignMetrics";
+import StatsCards from "../components/StatsCards";
+import FileUpload from "../components/FileUpload";
+import EmailComposer from "../components/EmailComposer";
+import GmailConfig from "../components/GmailConfig";
+import StudentTable from "../components/StudentTable";
+import RecentActivity from "../components/RecentActivity";
 
 export default function Dashboard() {
   const [showConfig, setShowConfig] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<number | null>(null);
+  const { user, logout, isLoggingOut } = useAuth();
   
   const { data: config } = useQuery({
     queryKey: ["/api/email-config"],
@@ -23,6 +25,14 @@ export default function Dashboard() {
     queryKey: ["/api/campaigns", selectedCampaign],
     enabled: !!selectedCampaign,
   });
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -51,6 +61,10 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center space-x-4">
                 <div className="flex items-center text-sm text-gray-600">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>{user?.fullName || user?.username}</span>
+                </div>
+                <div className="flex items-center text-sm text-gray-600">
                   <span className="mr-2">📧</span>
                   <span>{config?.senderEmail || 'admin@college.edu'}</span>
                 </div>
@@ -61,6 +75,15 @@ export default function Dashboard() {
                   className="bg-gray-100 hover:bg-gray-200 p-2"
                 >
                   <Settings className="text-gray-600 h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  className="bg-red-50 hover:bg-red-100 text-red-600 p-2"
+                >
+                  <LogOut className="h-4 w-4" />
                 </Button>
               </div>
             </div>
