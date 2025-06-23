@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Edit, Eye, Send, Radio, AlertCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import EmailPreviewDialog from "@/components/EmailPreviewDialog";
 
 interface EmailComposerProps {
   campaignId?: number | null;
@@ -33,6 +34,7 @@ Placement Cell`);
   const [selectedSection, setSelectedSection] = useState("all");
   const [testEmail, setTestEmail] = useState("");
   const [showTestDialog, setShowTestDialog] = useState(false);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -264,19 +266,23 @@ Placement Cell`);
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button
-            variant="outline"
+          <Button 
+            variant="outline" 
             className="flex-1"
-            onClick={() => {
-              toast({
-                title: "Preview",
-                description: "Email preview functionality coming soon!",
-              });
-            }}
+            onClick={() => setShowPreviewDialog(true)}
           >
             <Eye className="mr-2 h-4 w-4" />
             Preview Email
           </Button>
+          
+          <EmailPreviewDialog
+            open={showPreviewDialog}
+            onOpenChange={setShowPreviewDialog}
+            subject={subject}
+            message={message}
+            campaignId={campaignId}
+          />
+
           <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
             <DialogTrigger asChild>
               <Button
