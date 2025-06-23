@@ -106,6 +106,7 @@ export function useAuth() {
     user: authData?.user,
     isLoading,
     isAuthenticated: !!authData?.user,
+    isUnauthenticated: !isLoading && !authData?.user, // Explicitly know when we're not authenticated
     error,
     login: loginMutation.mutateAsync,
     logout: logoutMutation.mutateAsync,
