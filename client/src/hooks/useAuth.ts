@@ -68,11 +68,19 @@ export function useAuth() {
     error,
   } = useQuery({
     queryKey: ["/api/auth/me"],
-    queryFn: authApi.getCurrentUser,
+    queryFn: async () => {
+      try {
+        return await authApi.getCurrentUser();
+      } catch (error) {
+        // Return null instead of throwing for 401 errors
+        // This allows the hook to resolve loading state properly
+        return null;
+      }
+    },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
-    // If the request fails, treat it as not authenticated instead of loading
+    // Ensure we don't throw errors that would cause infinite loading
     throwOnError: false,
   });
 
