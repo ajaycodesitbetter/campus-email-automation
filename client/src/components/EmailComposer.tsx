@@ -267,11 +267,46 @@ Placement Cell`);
           <Button
             variant="outline"
             className="flex-1"
-            onClick={() => {
-              toast({
-                title: "Preview",
-                description: "Email preview functionality coming soon!",
-              });
+onClick={() => {
+              if (!subject.trim() || !message.trim()) {
+                toast({
+                  title: "Validation Error",
+                  description: "Subject and message are required.",
+                  variant: "destructive",
+                });
+                return;
+              }
+
+              const previewContent = message.replace(/{{Name}}/g, 'John Doe')
+                                           .replace(/{{Section}}/g, 'A2')
+                                           .replace(/\n/g, '<br>');
+
+              const previewWindow = window.open('', '_blank');
+              if (previewWindow) {
+                previewWindow.document.write(`
+                  <html>
+                    <head>
+                      <title>Email Preview</title>
+                      <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        .subject { font-weight: bold; margin-bottom: 10px; }
+                        .message { white-space: pre-wrap; }
+                      </style>
+                    </head>
+                    <body>
+                      <div class="subject">${subject}</div>
+                      <div class="message">${previewContent}</div>
+                    </body>
+                  </html>
+                `);
+                previewWindow.document.close();
+              } else {
+                toast({
+                  title: "Preview Failed",
+                  description: "Unable to open preview window. Please check your browser settings.",
+                  variant: "destructive",
+                });
+              }
             }}
           >
             <Eye className="mr-2 h-4 w-4" />

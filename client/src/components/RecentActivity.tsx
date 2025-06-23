@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { History, Download, SquareCheck, Trash } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import EmailValidator from "./EmailValidator";
+import DataExporter from "./DataExporter";
 
 interface ActivityLog {
   id: number;
@@ -13,7 +16,13 @@ interface ActivityLog {
   metadata?: any;
 }
 
-export default function RecentActivity() {
+interface RecentActivityProps {
+  campaignId?: number | null;
+}
+
+export default function RecentActivity({ campaignId }: RecentActivityProps) {
+  const [showValidator, setShowValidator] = useState(false);
+  const [showExporter, setShowExporter] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -173,27 +182,21 @@ export default function RecentActivity() {
             variant="ghost"
             className="w-full bg-gray-50 hover:bg-gray-100 text-gray-700 p-3 text-left justify-start"
             onClick={() => {
-              toast({
-                title: "Export Logs",
-                description: "Export functionality coming soon!",
-              });
+              setShowExporter(!showExporter);
             }}
           >
             <Download className="mr-3 h-4 w-4 text-gray-600" />
-            Export Email Logs
+            {showExporter ? 'Hide Export Tools' : 'Export Email Logs'}
           </Button>
           <Button
             variant="ghost"
             className="w-full bg-gray-50 hover:bg-gray-100 text-gray-700 p-3 text-left justify-start"
             onClick={() => {
-              toast({
-                title: "Validate Emails",
-                description: "Email validation coming soon!",
-              });
+              setShowValidator(!showValidator);
             }}
           >
             <SquareCheck className="mr-3 h-4 w-4 text-gray-600" />
-            Validate Email Addresses
+            {showValidator ? 'Hide Email Validator' : 'Validate Email Addresses'}
           </Button>
           <Button
             variant="ghost"
@@ -206,6 +209,16 @@ export default function RecentActivity() {
           </Button>
         </CardContent>
       </Card>
+      
+      {/* Email Validator */}
+      {showValidator && (
+        <EmailValidator campaignId={campaignId} />
+      )}
+      
+      {/* Data Exporter */}
+      {showExporter && (
+        <DataExporter campaignId={campaignId} />
+      )}
     </>
   );
 }

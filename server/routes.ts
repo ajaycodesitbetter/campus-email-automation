@@ -65,9 +65,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         senderEmail: gmailUser,
         senderPassword: gmailPassword,
         dailyLimit: dailyLimit,
-        usedToday: existingConfig?.usedToday || 0,
-        lastResetDate: existingConfig?.lastResetDate || new Date(),
-        configured: true
+        usedToday: existingConfig?.usedToday || 0
       });
       
       res.json({
@@ -76,7 +74,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           senderEmail: config.senderEmail,
           dailyLimit: config.dailyLimit,
           usedToday: config.usedToday || 0,
-          configured: config.configured
+          configured: true // hardcoded for now since we don't store this field
         }
       });
     } catch (error) {

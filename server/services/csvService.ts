@@ -3,7 +3,7 @@ import { InsertStudent } from '@shared/schema';
 
 export interface CSVValidationResult {
   valid: boolean;
-  data: InsertStudent[];
+  data: Omit<InsertStudent, 'campaignId'>[];
   errors: string[];
   duplicates: string[];
 }

@@ -72,11 +72,16 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
   };
 
   const handleEdit = () => {
-    if (config) {
-      setSenderEmail(config.senderEmail || '');
+    if (config && config.configured && config.senderEmail && config.senderEmail.includes('@')) {
+      // Only prefill if it's a valid email address
+      setSenderEmail(config.senderEmail);
       setDailyLimit(config.dailyLimit || 1500);
-      setSenderPassword(''); // Don't prefill password for security
+    } else {
+      // Set correct defaults for Gmail configuration
+      setSenderEmail('worktestingajay@gmail.com');
+      setDailyLimit(1500);
     }
+    setSenderPassword(''); // Don't prefill password for security
     setIsEditing(true);
   };
 
