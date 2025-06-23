@@ -40,6 +40,7 @@ export const emailConfig = pgTable("email_config", {
   dailyLimit: integer("daily_limit").default(1500),
   usedToday: integer("used_today").default(0),
   lastResetDate: timestamp("last_reset_date").defaultNow(),
+  configured: boolean("configured").default(false),
 });
 
 export const activityLogs = pgTable("activity_logs", {
