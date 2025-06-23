@@ -61,20 +61,56 @@ class UserManager {
       console.log('📋 Existing Users:');
       console.log('================');
       
-      // Note: We'll need to add a method to get all users
-      // For now, let's try to get the admin user
-      const adminUser = await storage.getUserByUsername('admin');
-      if (adminUser) {
-        console.log(`👤 ${adminUser.username} (${adminUser.email}) - ${adminUser.role}`);
-        console.log(`   Full Name: ${adminUser.fullName}`);
-        console.log(`   Active: ${adminUser.isActive}`);
-        console.log(`   Last Login: ${adminUser.lastLoginAt || 'Never'}`);
+      // Check multiple possible users
+      const usernames = ['admin', 'MAILSRCEM'];
+      let foundUsers = 0;
+      
+      for (const username of usernames) {
+        const user = await storage.getUserByUsername(username);
+        if (user) {
+          foundUsers++;
+          const status = user.isActive ? '✅ Active' : '❌ Disabled';
+          console.log(`👤 ${user.username} (${user.email}) - ${user.role} ${status}`);
+          console.log(`   Full Name: ${user.fullName}`);
+          console.log(`   Last Login: ${user.lastLoginAt || 'Never'}`);
+          console.log('');
+        }
+      }
+      
+      if (foundUsers === 0) {
+        console.log('No users found.');
       } else {
-        console.log('No admin user found.');
+        console.log(`Total users found: ${foundUsers}`);
       }
       
     } catch (error) {
       console.error('❌ Failed to list users:', error);
+    }
+  }
+  
+  /**
+   * Delete a user by username
+   */
+  static async deleteUser(username: string) {
+    try {
+      console.log(`🔄 Deleting user: ${username}...`);
+      
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        console.log(`❌ User '${username}' not found!`);
+        return false;
+      }
+      
+      // Add delete method to storage (we'll need to implement this)
+      // For now, we'll disable the user instead
+      await storage.updateUserActive(user.id, false);
+      
+      console.log('✅ User disabled successfully!');
+      console.log(`📋 User '${username}' has been disabled and cannot login anymore.`);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to delete user:', error);
+      return false;
     }
   }
   
@@ -149,6 +185,17 @@ async function main() {
       await UserManager.changePassword(args[1], args[2], args[3]);
       break;
       
+    case 'delete':
+    case 'disable':
+      if (args.length < 2) {
+        console.log('Usage: npm run user-manager delete <username>');
+        console.log('Example: npm run user-manager delete admin');
+        process.exit(1);
+      }
+      
+      await UserManager.deleteUser(args[1]);
+      break;
+      
     case 'quick-setup':
       console.log('🚀 Quick Setup - Creating your custom admin user...\n');
       
@@ -167,10 +214,12 @@ async function main() {
       console.log('  create <username> <password> <email> <fullName> [role] - Create new user');
       console.log('  list                                                   - List existing users');
       console.log('  change-password <username> <current> <new>            - Change password');
+      console.log('  delete <username>                                     - Disable user account');
       console.log('  quick-setup                                           - Show setup instructions');
       console.log('\nExamples:');
       console.log('  npm run user-manager create john pass123 john@college.edu "John Smith"');
       console.log('  npm run user-manager change-password admin admin123 newpass123');
+      console.log('  npm run user-manager delete admin');
       console.log('  npm run user-manager list');
       break;
   }

@@ -264,6 +264,16 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id));
   }
 
+  async updateUserActive(id: number, isActive: boolean): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        isActive,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id));
+  }
+
   async getStats(campaignId?: number): Promise<{
     totalStudents: number;
     emailsSent: number;
