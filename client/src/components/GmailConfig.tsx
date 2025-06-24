@@ -44,9 +44,19 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
 
   const updateConfigMutation = useMutation({
     mutationFn: async (data: { senderEmail: string; senderPassword: string; dailyLimit: number }) => {
-      return apiRequest("POST", "/api/email-config", data);
+      console.log('Sending email config data:', { ...data, senderPassword: '[HIDDEN]' });
+      try {
+        const response = await apiRequest("POST", "/api/email-config", data);
+        const result = await response.json();
+        console.log('Email config response:', result);
+        return result;
+      } catch (error) {
+        console.error('Email config error:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Email config success:', data);
       toast({
         title: "Success",
         description: "Gmail configuration updated successfully!",
@@ -55,9 +65,10 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/email-config"] });
     },
     onError: (error: any) => {
+      console.error('Email config mutation error:', error);
       toast({
         title: "Configuration Failed",
-        description: error.message,
+        description: error.message || 'Unknown error occurred',
         variant: "destructive",
       });
     },
