@@ -107,16 +107,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Invalid username or password" });
       }
       
-      // Set session and save explicitly
+      // Regenerate session for security and fresh start
+      await new Promise((resolve, reject) => {
+        req.session.regenerate((err) => {
+          if (err) {
+            console.error('Session regeneration error:', err);
+            reject(err);
+          } else {
+            resolve(undefined);
+          }
+        });
+      });
+      
+      // Set session data
       req.session.userId = user.id;
       req.session.username = user.username;
       req.session.role = user.role;
       
+      console.log('Setting session data:', {
+        userId: user.id,
+        username: user.username,
+        role: user.role,
+        sessionId: req.sessionID
+      });
+      
       // Force session save
       await new Promise((resolve, reject) => {
         req.session.save((err) => {
-          if (err) reject(err);
-          else resolve(undefined);
+          if (err) {
+            console.error('Session save error:', err);
+            reject(err);
+          } else {
+            console.log('Session saved successfully');
+            resolve(undefined);
+          }
         });
       });
       
