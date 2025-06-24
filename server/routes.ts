@@ -47,9 +47,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       sessionId: req.sessionID,
       userId: req.session?.userId,
       username: req.session?.username,
+      role: req.session?.role,
       cookies: req.headers.cookie,
       userAgent: req.headers['user-agent']
     });
+  });
+  
+  // Test login endpoint (temporary debugging)
+  app.post("/api/debug/test-login", async (req, res) => {
+    try {
+      console.log('🧪 Test login endpoint called');
+      console.log('Request body:', req.body);
+      
+      // Just set session data directly for testing
+      req.session.userId = 999;
+      req.session.username = 'TEST_USER';
+      req.session.role = 'admin';
+      
+      console.log('Session set to:', {
+        userId: req.session.userId,
+        username: req.session.username,
+        role: req.session.role
+      });
+      
+      res.json({
+        message: 'Test session data set',
+        session: {
+          userId: req.session.userId,
+          username: req.session.username,
+          role: req.session.role
+        }
+      });
+    } catch (error) {
+      console.error('Test login error:', error);
+      res.status(500).json({ error: 'Test login failed' });
+    }
   });
   
   // Email configuration sync endpoint (no auth required for setup)
