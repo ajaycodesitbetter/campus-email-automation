@@ -600,19 +600,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update email configuration
   app.post("/api/email-config", requireAuth, async (req, res) => {
     try {
+      console.log('📧 Email config request received');
+      console.log('User session:', {
+        userId: req.session.userId,
+        username: req.session.username,
+        sessionId: req.sessionID
+      });
+      console.log('Request body keys:', Object.keys(req.body));
+      console.log('Email config data (password hidden):', {
+        ...req.body,
+        senderPassword: req.body.senderPassword ? '[HIDDEN]' : 'MISSING'
+      });
+      
       const validatedData = insertEmailConfigSchema.parse(req.body);
+      console.log('✅ Schema validation passed');
+      
       const config = await storage.createOrUpdateEmailConfig(validatedData);
+      console.log('✅ Database save successful:', {
+        senderEmail: config.senderEmail,
+        dailyLimit: config.dailyLimit
+      });
       
       // Test email configuration
       try {
         await emailService.initialize();
+        console.log('✅ Email service initialization successful');
       } catch (error) {
+        console.error('❌ Email service initialization failed:', error);
         return res.status(400).json({ 
           error: "Invalid email configuration",
           details: error instanceof Error ? error.message : 'Unknown error'
         });
       }
 
+      console.log('✅ Email config update completed successfully');
       res.json({
         message: "Email configuration updated successfully",
         config: {
@@ -622,8 +643,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
     } catch (error) {
-      console.error('Config update error:', error);
-      res.status(500).json({ error: "Failed to update email configuration" });
+      console.error('❌ Config update error:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
+      }
+      res.status(500).json({ 
+        error: "Failed to update email configuration",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
