@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,15 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // React to expanded prop changes
+  useEffect(() => {
+    if (expanded) {
+      handleEdit();
+    } else {
+      setIsEditing(false);
+    }
+  }, [expanded]);
 
   interface EmailConfig {
     senderEmail: string;

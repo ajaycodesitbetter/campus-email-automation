@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { GraduationCap, Settings, LogOut, User } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../hooks/useAuth";
+import { getApiUrl } from "../lib/api";
 import CampaignSidebar from "../components/CampaignSidebar";
 import CampaignMetrics from "../components/CampaignMetrics";
 import StatsCards from "../components/StatsCards";
@@ -34,10 +35,28 @@ export default function Dashboard() {
   
   const { data: config } = useQuery<EmailConfig>({
     queryKey: ["/api/email-config"],
+    queryFn: async () => {
+      const response = await fetch(getApiUrl('/api/email-config'), {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch email config');
+      }
+      return response.json();
+    }
   });
   
   const { data: campaigns = [] } = useQuery<Campaign[]>({
     queryKey: ["/api/campaigns"],
+    queryFn: async () => {
+      const response = await fetch(getApiUrl('/api/campaigns'), {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch campaigns');
+      }
+      return response.json();
+    }
   });
   
   const selectedCampaignData = campaigns.find(c => c.id === selectedCampaign);
