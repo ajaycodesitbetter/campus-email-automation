@@ -75,18 +75,43 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
   });
 
   const handleSave = () => {
-    if (!senderEmail.trim() || !senderPassword.trim()) {
+    console.log('Save button clicked!');
+    console.log('Form data:', { 
+      senderEmail: senderEmail?.trim(), 
+      senderPassword: senderPassword?.trim() ? '[HIDDEN]' : 'EMPTY', 
+      dailyLimit 
+    });
+    
+    if (!senderEmail?.trim()) {
       toast({
         title: "Validation Error",
-        description: "Email and password are required.",
+        description: "Email address is required.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!senderPassword?.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "App password is required.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (senderPassword.trim().length < 10) {
+      toast({
+        title: "Validation Error",
+        description: "App password seems too short. Please check your Gmail app password.",
         variant: "destructive",
       });
       return;
     }
 
     updateConfigMutation.mutate({
-      senderEmail,
-      senderPassword,
+      senderEmail: senderEmail.trim(),
+      senderPassword: senderPassword.trim(),
       dailyLimit,
     });
   };
