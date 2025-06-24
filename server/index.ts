@@ -28,24 +28,25 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Session configuration
-const PgSession = ConnectPgSimple(session);
+// Session configuration - Using memory store temporarily to fix session issues
+// const PgSession = ConnectPgSimple(session);
 app.use(
   session({
-    store: new PgSession({
-      pool: pool,
-      tableName: "session",
-      createTableIfMissing: true,
-    }),
-    secret: process.env.SESSION_SECRET || "your-secret-key-here",
+    // Temporarily use memory store instead of database
+    // store: new PgSession({
+    //   pool: pool,
+    //   tableName: "session",
+    //   createTableIfMissing: true,
+    // }),
+    secret: process.env.SESSION_SECRET || "campus-email-automation-secret-key",
     resave: false,
     saveUninitialized: false,
+    name: 'campus.session.id',
     cookie: {
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      domain: process.env.NODE_ENV === "production" ? undefined : undefined,
     },
   })
 );
