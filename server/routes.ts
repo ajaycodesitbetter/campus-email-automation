@@ -40,6 +40,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // Session debug endpoint (temporary)
+  app.get("/api/debug/session", (req, res) => {
+    res.json({
+      hasSession: !!req.session,
+      sessionId: req.sessionID,
+      userId: req.session?.userId,
+      username: req.session?.username,
+      cookies: req.headers.cookie,
+      userAgent: req.headers['user-agent']
+    });
+  });
+  
   // Email configuration sync endpoint (no auth required for setup)
   app.post("/api/sync-email-config", async (req, res) => {
     try {
