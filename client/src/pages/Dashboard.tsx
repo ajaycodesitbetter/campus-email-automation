@@ -107,9 +107,16 @@ export default function Dashboard() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowConfig(!showConfig)}
-                  className="bg-gray-100 hover:bg-gray-200 p-2"
+                  className={`p-2 transition-colors ${
+                    showConfig 
+                      ? 'bg-blue-100 hover:bg-blue-200 text-blue-600' 
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                  }`}
+                  title={showConfig ? 'Close Settings' : 'Open Email Settings'}
                 >
-                  <Settings className="text-gray-600 h-4 w-4" />
+                  <Settings className={`h-4 w-4 transition-transform ${
+                    showConfig ? 'rotate-45' : 'rotate-0'
+                  }`} />
                 </Button>
                 <Button
                   variant="ghost"

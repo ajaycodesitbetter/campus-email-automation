@@ -14,7 +14,7 @@ interface GmailConfigProps {
 }
 
 export default function GmailConfig({ expanded = false }: GmailConfigProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(expanded);
   const [senderEmail, setSenderEmail] = useState("");
   const [senderPassword, setSenderPassword] = useState("");
   const [dailyLimit, setDailyLimit] = useState(1500);
