@@ -7,6 +7,8 @@ import { History, Download, SquareCheck, Trash } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import EmailValidator from "./EmailValidator";
 import DataExporter from "./DataExporter";
+import EmailLogExport from "@/components/EmailLogExport";
+import ActivityLogViewer from "@/components/ActivityLogViewer";
 
 interface ActivityLog {
   id: number;
@@ -147,18 +149,7 @@ export default function RecentActivity({ campaignId }: RecentActivityProps) {
                 </div>
               ))}
               <div className="p-4">
-                <Button
-                  variant="ghost"
-                  className="w-full text-primary hover:bg-blue-50"
-                  onClick={() => {
-                    toast({
-                      title: "View All Logs",
-                      description: "Full log viewer coming soon!",
-                    });
-                  }}
-                >
-                  View All Logs
-                </Button>
+                <ActivityLogViewer />
               </div>
             </>
           ) : (

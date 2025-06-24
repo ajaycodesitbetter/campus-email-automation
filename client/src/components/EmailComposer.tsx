@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Edit, Eye, Send, Radio, AlertCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import EmailPreviewDialog from "@/components/EmailPreviewDialog";
 
 interface EmailComposerProps {
   campaignId?: number | null;
@@ -33,6 +34,7 @@ Placement Cell`);
   const [selectedSection, setSelectedSection] = useState("all");
   const [testEmail, setTestEmail] = useState("");
   const [showTestDialog, setShowTestDialog] = useState(false);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -264,54 +266,23 @@ Placement Cell`);
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button
-            variant="outline"
+          <Button 
+            variant="outline" 
             className="flex-1"
-onClick={() => {
-              if (!subject.trim() || !message.trim()) {
-                toast({
-                  title: "Validation Error",
-                  description: "Subject and message are required.",
-                  variant: "destructive",
-                });
-                return;
-              }
-
-              const previewContent = message.replace(/{{Name}}/g, 'John Doe')
-                                           .replace(/{{Section}}/g, 'A2')
-                                           .replace(/\n/g, '<br>');
-
-              const previewWindow = window.open('', '_blank');
-              if (previewWindow) {
-                previewWindow.document.write(`
-                  <html>
-                    <head>
-                      <title>Email Preview</title>
-                      <style>
-                        body { font-family: Arial, sans-serif; padding: 20px; }
-                        .subject { font-weight: bold; margin-bottom: 10px; }
-                        .message { white-space: pre-wrap; }
-                      </style>
-                    </head>
-                    <body>
-                      <div class="subject">${subject}</div>
-                      <div class="message">${previewContent}</div>
-                    </body>
-                  </html>
-                `);
-                previewWindow.document.close();
-              } else {
-                toast({
-                  title: "Preview Failed",
-                  description: "Unable to open preview window. Please check your browser settings.",
-                  variant: "destructive",
-                });
-              }
-            }}
+            onClick={() => setShowPreviewDialog(true)}
           >
             <Eye className="mr-2 h-4 w-4" />
             Preview Email
           </Button>
+          
+          <EmailPreviewDialog
+            open={showPreviewDialog}
+            onOpenChange={setShowPreviewDialog}
+            subject={subject}
+            message={message}
+            campaignId={campaignId}
+          />
+
           <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
             <DialogTrigger asChild>
               <Button

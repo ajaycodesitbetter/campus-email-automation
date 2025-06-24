@@ -85,8 +85,9 @@ export class CSVService {
         // Add valid student data
         result.data.push({
           name: row.name.trim(),
-          email: email,
-          section: row.section.trim().toUpperCase(),
+          email: row.email.trim(),
+          section: row.section.trim(),
+          campaignId: 0, // Will be set when uploading
           subject: row.subject?.trim() || '',
           message: row.message?.trim() || '',
         });
