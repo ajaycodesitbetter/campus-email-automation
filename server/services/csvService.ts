@@ -87,7 +87,6 @@ export class CSVService {
           name: row.name.trim(),
           email: row.email.trim(),
           section: row.section.trim(),
-          campaignId: 0, // Will be set when uploading
           subject: row.subject?.trim() || '',
           message: row.message?.trim() || '',
         });

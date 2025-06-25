@@ -625,7 +625,7 @@ export class EmailService {
         }
         
         // Check if campaign is paused, if so, break the loop
-        if (this.currentCampaign && this.currentCampaign.status === 'paused') {
+        if (this.currentCampaign && this.currentCampaign.status !== 'running') {
           this.logger(`Campaign "${nextCampaign.config.name}" (${nextCampaign.config.id}) paused during processing`, 'info');
           break;
         }
