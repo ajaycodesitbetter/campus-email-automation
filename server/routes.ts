@@ -25,19 +25,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create campaign
   app.post("/api/campaigns", async (req, res) => {
     try {
+      console.log('📝 Creating campaign with data:', req.body);
       const validatedData = insertCampaignSchema.parse(req.body);
+      console.log('✅ Validation passed:', validatedData);
+      
       const campaign = await storage.createCampaign(validatedData);
+      console.log('✅ Campaign created:', campaign);
       
       await storage.createActivityLog({
         action: "CAMPAIGN_CREATED",
         description: `Campaign "${campaign.name}" created`,
         metadata: { campaignId: campaign.id, campaignName: campaign.name }
       });
+      console.log('✅ Activity log created');
 
       res.json(campaign);
     } catch (error) {
-      console.error('Campaign creation error:', error);
-      res.status(500).json({ error: "Failed to create campaign" });
+      console.error('❌ Campaign creation error:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      res.status(500).json({ 
+        error: "Failed to create campaign",
+        details: error.message 
+      });
     }
   });
 
