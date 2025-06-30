@@ -193,7 +193,7 @@ export default function CampaignSidebar({ selectedCampaign, onSelectCampaign }: 
 
       {/* Campaign List */}
       <div className="space-y-3">
-        {campaigns?.map((campaign: Campaign) => (
+        {((campaigns as Campaign[]) || []).map((campaign: Campaign) => (
           <Card 
             key={campaign.id}
             className={`cursor-pointer transition-all ${
@@ -233,7 +233,7 @@ export default function CampaignSidebar({ selectedCampaign, onSelectCampaign }: 
         ))}
       </div>
 
-      {campaigns?.length === 0 && !showNewCampaign && (
+      {((campaigns as Campaign[]) || []).length === 0 && !showNewCampaign && (
         <div className="text-center py-8 text-gray-500">
           <MessageSquare className="mx-auto h-12 w-12 text-gray-300 mb-4" />
           <p className="text-sm">No campaigns yet</p>

@@ -42,7 +42,7 @@ export default function Dashboard() {
                 <GraduationCap className="text-primary text-2xl mr-3 h-8 w-8" />
                 <div>
                   <h1 className="text-xl font-semibold text-gray-900">
-                    {selectedCampaign ? selectedCampaignData?.name || 'Campaign' : 'Campus Email Automation'}
+                    {selectedCampaign ? (selectedCampaignData as any)?.name || 'Campaign' : 'Campus Email Automation'}
                   </h1>
                   {selectedCampaign && (
                     <p className="text-sm text-gray-500">Campaign Dashboard</p>
@@ -52,7 +52,7 @@ export default function Dashboard() {
               <div className="flex items-center space-x-4">
                 <div className="flex items-center text-sm text-gray-600">
                   <span className="mr-2">📧</span>
-                  <span>{config?.senderEmail || 'admin@college.edu'}</span>
+                  <span>{(config as any)?.senderEmail || 'admin@college.edu'}</span>
                 </div>
                 <Button
                   variant="ghost"

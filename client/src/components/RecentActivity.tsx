@@ -114,9 +114,9 @@ export default function RecentActivity() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {activities && activities.length > 0 ? (
-            <>
-              {activities.slice(0, 5).map((activity: any) => (
+          {activities && (activities as any[]).length > 0 ? (
+            <div className="space-y-3">
+              {(activities as any[]).slice(0, 5).map((activity: any) =>
                 <div key={activity.id} className="p-4 border-b border-gray-100 last:border-b-0">
                   <div className="flex items-start space-x-3">
                     <div className={`w-2 h-2 ${getActivityColor(activity.action)} rounded-full mt-2`}></div>
@@ -128,7 +128,7 @@ export default function RecentActivity() {
                     </div>
                   </div>
                 </div>
-              ))}
+              )}
               <div className="p-4">
                 <Button
                   variant="ghost"
@@ -143,7 +143,7 @@ export default function RecentActivity() {
                   View All Logs
                 </Button>
               </div>
-            </>
+            </div>
           ) : (
             <div className="p-8 text-center text-gray-500">
               <History className="mx-auto h-12 w-12 text-gray-300 mb-4" />

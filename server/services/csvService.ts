@@ -8,13 +8,17 @@ export interface CSVValidationResult {
   duplicates: string[];
 }
 
+export interface CSVParseOptions {
+  campaignId: number;
+}
+
 export class CSVService {
   validateEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   }
 
-  parseCSV(csvContent: string): CSVValidationResult {
+  parseCSV(csvContent: string, options: CSVParseOptions): CSVValidationResult {
     const result: CSVValidationResult = {
       valid: true,
       data: [],
@@ -87,6 +91,7 @@ export class CSVService {
           name: row.name.trim(),
           email: email,
           section: row.section.trim().toUpperCase(),
+          campaignId: options.campaignId,
           subject: row.subject?.trim() || '',
           message: row.message?.trim() || '',
         });

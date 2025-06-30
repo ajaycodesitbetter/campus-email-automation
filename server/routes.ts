@@ -132,7 +132,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const csvContent = req.file.buffer.toString('utf-8');
-      const validation = csvService.parseCSV(csvContent);
+      const parsedCampaignId = parseInt(campaignId) || 1; // Default campaign ID for now
+      const validation = csvService.parseCSV(csvContent, { campaignId: parsedCampaignId });
 
       if (!validation.valid) {
         return res.status(400).json({

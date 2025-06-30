@@ -66,8 +66,8 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
 
   const handleEdit = () => {
     if (config) {
-      setSenderEmail(config.senderEmail || '');
-      setDailyLimit(config.dailyLimit || 1500);
+      setSenderEmail((config as any)?.senderEmail || '');
+      setDailyLimit((config as any)?.dailyLimit || 1500);
       setSenderPassword(''); // Don't prefill password for security
     }
     setIsEditing(true);
@@ -92,7 +92,7 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
     );
   }
 
-  const usagePercentage = config ? Math.round(((config.usedToday || 0) / (config.dailyLimit || 1500)) * 100) : 0;
+  const usagePercentage = config ? Math.round((((config as any)?.usedToday || 0) / ((config as any)?.dailyLimit || 1500)) * 100) : 0;
 
   return (
     <Card className="shadow-sm border">
@@ -161,24 +161,24 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="font-medium text-gray-900">
-                  {config?.senderEmail || 'Not configured'}
+                  {(config as any)?.senderEmail || 'Not configured'}
                 </p>
                 <p className="text-sm text-gray-500">
-                  {config?.configured ? 'Connected via App Password' : 'Not connected'}
+                  {(config as any)?.configured ? 'Connected via App Password' : 'Not connected'}
                 </p>
               </div>
-              <div className={`w-3 h-3 rounded-full ${config?.configured ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <div className={`w-3 h-3 rounded-full ${(config as any)?.configured ? 'bg-green-500' : 'bg-red-500'}`}></div>
             </div>
 
-            {config?.configured && (
+            {(config as any)?.configured && (
               <div className="space-y-3 mb-4">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Daily Limit</span>
-                  <span className="text-sm font-medium">{config.dailyLimit}/day</span>
+                  <span className="text-sm font-medium">{(config as any)?.dailyLimit}/day</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Used Today</span>
-                  <span className="text-sm font-medium">{config.usedToday || 0}</span>
+                  <span className="text-sm font-medium">{(config as any)?.usedToday || 0}</span>
                 </div>
                 <Progress value={usagePercentage} className="h-2" />
               </div>
@@ -190,7 +190,7 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
               className="w-full"
             >
               <Settings className="mr-2 h-4 w-4" />
-              {config?.configured ? 'Update Settings' : 'Configure Gmail'}
+              {(config as any)?.configured ? 'Update Settings' : 'Configure Gmail'}
             </Button>
           </>
         )}

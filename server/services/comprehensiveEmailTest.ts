@@ -119,7 +119,7 @@ async function verifyDailyLimitCounter() {
   const usedBefore = configBefore.usedToday || 0;
   
   // Check if we can send one more email
-  if (usedBefore >= configBefore.dailyLimit) {
+  if (usedBefore >= (configBefore.dailyLimit || 1500)) {
     console.log('⚠️ Daily limit already reached, skipping send test');
     console.log('✅ Daily limit enforcement is working correctly');
     return;

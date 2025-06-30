@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { storage } from "../storage";
+import type { Attachment } from "nodemailer/lib/mailer";
 
 /**
  * Represents the data structure for an email
@@ -9,7 +10,7 @@ export interface EmailData {
   subject: string;
   text: string;
   html?: string;
-  attachments?: nodemailer.Attachment[];
+  attachments?: Attachment[];
   cc?: string | string[];
   bcc?: string | string[];
   replyTo?: string;
@@ -292,13 +293,15 @@ export class EmailService {
           this.logger(`Email ${i+1}/${emails.length} sent successfully`, 'info');
         } else {
           failed++;
-          const errorMsg = `Failed to send to ${typeof emails[i].to === 'string' ? emails[i].to : emails[i].to.join(', ')}: ${result.error || "Unknown error"}`;
+          const recipient = typeof emails[i].to === 'string' ? emails[i].to : (emails[i].to as string[]).join(', ');
+          const errorMsg = `Failed to send to ${recipient}: ${result.error || "Unknown error"}`;
           errors.push(errorMsg);
           this.logger(errorMsg, 'error');
         }
       } catch (error) {
         failed++;
-        const errorMsg = `Failed to send to ${typeof emails[i].to === 'string' ? emails[i].to : emails[i].to.join(', ')}: ${error instanceof Error ? error.message : "Unknown error"}`;
+        const recipient = typeof emails[i].to === 'string' ? emails[i].to : (emails[i].to as string[]).join(', ');
+        const errorMsg = `Failed to send to ${recipient}: ${error instanceof Error ? error.message : "Unknown error"}`;
         errors.push(errorMsg);
         this.logger(errorMsg, 'error');
       }
@@ -623,7 +626,7 @@ export class EmailService {
         }
         
         // Check if campaign is paused, if so, break the loop
-        if (this.currentCampaign?.status === 'paused') {
+        if (this.currentCampaign && this.currentCampaign.status !== 'running') {
           this.logger(`Campaign "${nextCampaign.config.name}" (${nextCampaign.config.id}) paused during processing`, 'info');
           break;
         }
