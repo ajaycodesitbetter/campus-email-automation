@@ -2,14 +2,19 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from "@shared/schema";
 
-if (!process.env.DATABASE_URL) {
+const dbHost = process.env.DATABASE_HOST;
+const dbUser = process.env.DATABASE_USER;
+const dbPassword = process.env.DATABASE_PASSWORD;
+const dbName = process.env.DATABASE_NAME;
+
+if (!dbHost || !dbUser || !dbPassword || !dbName) {
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+    "Database connection variables (HOST, USER, PASSWORD, NAME) must be set."
   );
 }
 
-const connectionString = process.env.DATABASE_URL;
-console.log('Connecting to database...', connectionString.substring(0, 30) + '...');
+const connectionString = `postgresql://${dbUser}:${dbPassword}@${dbHost}/${dbName}?sslmode=require`;
+console.log('Connecting to database...', `postgresql://${dbUser}:***@${dbHost}/${dbName}`);
 
 export const pool = new Pool({ 
   connectionString,
