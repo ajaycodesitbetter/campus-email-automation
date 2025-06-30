@@ -35,7 +35,8 @@ export default function CampaignSidebar({ selectedCampaign, onSelectCampaign }: 
 
   const createCampaignMutation = useMutation({
     mutationFn: async (data: { name: string; emoji: string; description?: string }) => {
-      return apiRequest("POST", "/api/campaigns", data);
+      const response = await apiRequest("POST", "/api/campaigns", data);
+      return response.json();
     },
     onSuccess: () => {
       toast({
