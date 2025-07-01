@@ -40,6 +40,15 @@ if (dbHost && dbUser && dbPassword && dbName) {
   );
 }
 console.log('Connecting to database...');
+console.log('Final connection string for Pool:', connectionString);
+console.log('Connection string length:', connectionString.length);
+
+// Additional validation
+if (connectionString.includes('base')) {
+  console.error('❌ CONNECTION STRING CONTAINS "base" - THIS IS THE PROBLEM!');
+  console.error('Raw DATABASE_URL:', databaseUrl);
+  console.error('Processed connectionString:', connectionString);
+}
 
 export const pool = new Pool({ 
   connectionString,
