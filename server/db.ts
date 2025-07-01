@@ -2,19 +2,29 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from "@shared/schema";
 
+// Try to use separate variables first, fallback to DATABASE_URL
 const dbHost = process.env.DATABASE_HOST;
 const dbUser = process.env.DATABASE_USER;
 const dbPassword = process.env.DATABASE_PASSWORD;
 const dbName = process.env.DATABASE_NAME;
+const databaseUrl = process.env.DATABASE_URL;
 
-if (!dbHost || !dbUser || !dbPassword || !dbName) {
+let connectionString: string;
+
+if (dbHost && dbUser && dbPassword && dbName) {
+  // Use separate variables
+  connectionString = `postgresql://${dbUser}:${dbPassword}@${dbHost}/${dbName}?sslmode=require`;
+  console.log('Using separate database variables');
+} else if (databaseUrl) {
+  // Use DATABASE_URL
+  connectionString = databaseUrl;
+  console.log('Using DATABASE_URL');
+} else {
   throw new Error(
-    "Database connection variables (HOST, USER, PASSWORD, NAME) must be set."
+    "Either DATABASE_URL or all separate database variables (HOST, USER, PASSWORD, NAME) must be set."
   );
 }
-
-const connectionString = `postgresql://${dbUser}:${dbPassword}@${dbHost}/${dbName}?sslmode=require`;
-console.log('Connecting to database...', `postgresql://${dbUser}:***@${dbHost}/${dbName}`);
+console.log('Connecting to database...');
 
 export const pool = new Pool({ 
   connectionString,
