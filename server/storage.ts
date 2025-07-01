@@ -1,6 +1,6 @@
 import { campaigns, students, emailLogs, emailConfig, activityLogs, type Campaign, type InsertCampaign, type Student, type InsertStudent, type EmailLog, type InsertEmailLog, type EmailConfig, type InsertEmailConfig, type ActivityLog, type InsertActivityLog } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {
   // Campaigns
@@ -85,7 +85,7 @@ export class DatabaseStorage implements IStorage {
   async getStudentsBySection(section: string, campaignId?: number): Promise<Student[]> {
     if (campaignId) {
       return await db.select().from(students)
-        .where(eq(students.section, section) && eq(students.campaignId, campaignId))
+        .where(and(eq(students.section, section), eq(students.campaignId, campaignId)))
         .orderBy(desc(students.createdAt));
     }
     return await db.select().from(students).where(eq(students.section, section)).orderBy(desc(students.createdAt));
