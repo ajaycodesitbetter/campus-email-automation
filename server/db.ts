@@ -17,15 +17,17 @@ if (dbHost && dbUser && dbPassword && dbName) {
   console.log('Using separate database variables');
   console.log('DB Host:', dbHost);
 } else if (databaseUrl) {
-  // Use DATABASE_URL
-  connectionString = databaseUrl;
+  // Use DATABASE_URL, but remove channel_binding parameter if present
+  // as it can cause issues with Node.js pg driver
+  connectionString = databaseUrl.replace('&channel_binding=require', '').replace('?channel_binding=require', '');
   console.log('Using DATABASE_URL');
   console.log('DATABASE_URL length:', databaseUrl.length);
   console.log('DATABASE_URL first 50 chars:', databaseUrl.substring(0, 50));
+  console.log('Cleaned connection string first 50 chars:', connectionString.substring(0, 50));
   
   // Extract hostname for debugging
   try {
-    const url = new URL(databaseUrl);
+    const url = new URL(connectionString);
     console.log('Parsed hostname:', url.hostname);
     console.log('Parsed port:', url.port);
     console.log('Parsed database:', url.pathname);
