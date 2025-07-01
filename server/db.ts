@@ -15,10 +15,23 @@ if (dbHost && dbUser && dbPassword && dbName) {
   // Use separate variables
   connectionString = `postgresql://${dbUser}:${dbPassword}@${dbHost}/${dbName}?sslmode=require`;
   console.log('Using separate database variables');
+  console.log('DB Host:', dbHost);
 } else if (databaseUrl) {
   // Use DATABASE_URL
   connectionString = databaseUrl;
   console.log('Using DATABASE_URL');
+  console.log('DATABASE_URL length:', databaseUrl.length);
+  console.log('DATABASE_URL first 50 chars:', databaseUrl.substring(0, 50));
+  
+  // Extract hostname for debugging
+  try {
+    const url = new URL(databaseUrl);
+    console.log('Parsed hostname:', url.hostname);
+    console.log('Parsed port:', url.port);
+    console.log('Parsed database:', url.pathname);
+  } catch (e) {
+    console.error('Failed to parse DATABASE_URL:', e.message);
+  }
 } else {
   throw new Error(
     "Either DATABASE_URL or all separate database variables (HOST, USER, PASSWORD, NAME) must be set."
