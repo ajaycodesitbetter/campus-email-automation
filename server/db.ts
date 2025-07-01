@@ -38,9 +38,82 @@ export const pool = new Pool({
 
 export const db = drizzle(pool, { schema });
 
-// Test connection on startup
-pool.query('SELECT 1').then(() => {
+// Test connection and create tables on startup
+pool.query('SELECT 1').then(async () => {
   console.log('✅ Database connection successful');
+  
+  // Create tables if they don't exist
+  try {
+    await createTablesIfNotExist();
+    console.log('✅ Database tables verified/created');
+  } catch (error) {
+    console.error('❌ Table creation failed:', error);
+  }
 }).catch((error) => {
   console.error('❌ Database connection failed:', error);
 });
+
+async function createTablesIfNotExist() {
+  // Create campaigns table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS campaigns (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Create students table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS students (
+      id SERIAL PRIMARY KEY,
+      campaign_id INTEGER REFERENCES campaigns(id) ON DELETE CASCADE,
+      name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) NOT NULL,
+      section VARCHAR(100) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Create email_logs table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS email_logs (
+      id SERIAL PRIMARY KEY,
+      campaign_id INTEGER REFERENCES campaigns(id) ON DELETE CASCADE,
+      student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
+      email VARCHAR(255) NOT NULL,
+      subject VARCHAR(500) NOT NULL,
+      message TEXT NOT NULL,
+      status VARCHAR(50) DEFAULT 'pending',
+      error_message TEXT,
+      sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Create email_config table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS email_config (
+      id SERIAL PRIMARY KEY,
+      sender_email VARCHAR(255) NOT NULL,
+      app_password TEXT NOT NULL,
+      daily_limit INTEGER DEFAULT 1500,
+      used_today INTEGER DEFAULT 0,
+      last_reset_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Create activity_logs table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS activity_logs (
+      id SERIAL PRIMARY KEY,
+      action VARCHAR(255) NOT NULL,
+      description TEXT,
+      metadata JSONB,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+}
