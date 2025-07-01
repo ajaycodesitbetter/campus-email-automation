@@ -12,6 +12,27 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint
+  app.get("/api/health", async (req, res) => {
+    try {
+      // Test database connection
+      await storage.getEmailConfig();
+      res.json({ 
+        status: "healthy", 
+        database: "connected",
+        timestamp: new Date().toISOString() 
+      });
+    } catch (error) {
+      console.error('Health check failed:', error);
+      res.status(500).json({ 
+        status: "unhealthy", 
+        database: "disconnected",
+        error: error.message,
+        timestamp: new Date().toISOString() 
+      });
+    }
+  });
+
   // Get campaigns
   app.get("/api/campaigns", async (req, res) => {
     try {
