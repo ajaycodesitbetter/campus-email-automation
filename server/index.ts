@@ -1,5 +1,5 @@
 import "dotenv/config";
-// Force redeploy: 2025-07-01T10:12:07Z
+// Force redeploy: 2025-07-01T16:03:47Z - After updating env vars
 
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
