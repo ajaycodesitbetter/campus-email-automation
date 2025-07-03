@@ -16,8 +16,11 @@ if (dbHost && dbUser && dbPassword && dbName) {
   connectionString = `postgresql://${dbUser}:${dbPassword}@${dbHost}/${dbName}?sslmode=require`;
   console.log('Using separate database variables');
 } else if (databaseUrl) {
-  connectionString = databaseUrl;
-  console.log('Using DATABASE_URL');
+  // Use DATABASE_URL, but remove channel_binding parameter if present
+  connectionString = databaseUrl.replace('&channel_binding=require', '').replace('?channel_binding=require', '');
+  console.log('Using DATABASE_URL (cleaned)');
+  console.log('Original URL length:', databaseUrl.length);
+  console.log('Cleaned URL length:', connectionString.length);
 } else {
   throw new Error(
     "Either DATABASE_URL or all separate database variables (HOST, USER, PASSWORD, NAME) must be set."
