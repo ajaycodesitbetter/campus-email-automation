@@ -15,9 +15,21 @@ const upload = multer({
 
 // Authentication middleware
 function requireAuth(req: any, res: any, next: any) {
+  console.log('🔐 Auth middleware - Session data:', {
+    sessionId: req.sessionID,
+    userId: req.session.userId,
+    hasSession: !!req.session,
+    sessionKeys: Object.keys(req.session || {}),
+    cookies: req.headers.cookie,
+    userAgent: req.headers['user-agent']
+  });
+  
   if (!req.session.userId) {
+    console.log('❌ Authentication failed - No userId in session');
     return res.status(401).json({ error: "Authentication required" });
   }
+  
+  console.log('✅ Authentication successful - userId:', req.session.userId);
   next();
 }
 
@@ -46,24 +58,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication - Login
   app.post("/api/login", async (req, res) => {
     const { username, password } = req.body;
+    console.log('🔐 Login attempt:', { username, hasPassword: !!password });
+    
     try {
       const { rows } = await pool.query('SELECT * FROM admin_users WHERE username = $1 AND is_active = true', [username]);
       const user = rows[0];
 
       if (!user) {
+        console.log('❌ User not found:', username);
         return res.status(401).json({ error: "Invalid username or password" });
       }
 
       const isMatch = await bcrypt.compare(password, user.password_hash);
 
       if (!isMatch) {
+        console.log('❌ Password mismatch for user:', username);
         return res.status(401).json({ error: "Invalid username or password" });
       }
 
+      // Set session data
       req.session.userId = user.id;
-      res.json({ message: "Login successful" });
+      
+      console.log('✅ Login successful:', {
+        userId: user.id,
+        username: user.username,
+        sessionId: req.sessionID,
+        sessionData: req.session
+      });
+      
+      res.json({ 
+        message: "Login successful",
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email
+        }
+      });
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
       res.status(500).json({ error: "Failed to login" });
     }
   });

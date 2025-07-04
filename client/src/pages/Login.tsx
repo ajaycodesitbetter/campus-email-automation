@@ -113,14 +113,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-xs text-blue-800 font-medium">Default Credentials:</p>
-              <p className="text-xs text-blue-600">Username: <code>admin</code></p>
-              <p className="text-xs text-blue-600">Password: <code>admin123</code></p>
-              <p className="text-xs text-blue-500 mt-1">Change these after first login!</p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
