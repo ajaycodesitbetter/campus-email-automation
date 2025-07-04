@@ -1,15 +1,25 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
+import bcrypt from "bcrypt";
 import { storage } from "./storage";
 import { emailService } from "./services/emailService";
 import { csvService } from "./services/csvService";
 import { insertStudentSchema, insertEmailConfigSchema, insertCampaignSchema } from "@shared/schema";
+import { pool } from "./db";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
+
+// Authentication middleware
+function requireAuth(req: any, res: any, next: any) {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  next();
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint
@@ -33,8 +43,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Authentication - Login
+  app.post("/api/login", async (req, res) => {
+    const { username, password } = req.body;
+    try {
+      const { rows } = await pool.query('SELECT * FROM admin_users WHERE username = $1 AND is_active = true', [username]);
+      const user = rows[0];
+
+      if (!user) {
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+
+      const isMatch = await bcrypt.compare(password, user.password_hash);
+
+      if (!isMatch) {
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+
+      req.session.userId = user.id;
+      res.json({ message: "Login successful" });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ error: "Failed to login" });
+    }
+  });
+
+  // Authentication - Check login status
+  app.get("/api/auth-status", (req, res) => {
+    if (req.session.userId) {
+      res.json({ authenticated: true });
+    } else {
+      res.json({ authenticated: false });
+    }
+  });
+
+  // Authentication - Logout
+  app.post("/api/logout", (req, res) => {
+    req.session.destroy(() => {
+      res.json({ message: "Logged out successfully" });
+    });
+  });
+
   // Get campaigns
-  app.get("/api/campaigns", async (req, res) => {
+  app.get("/api/campaigns", requireAuth, async (req, res) => {
     try {
       const campaigns = await storage.getCampaigns();
       res.json(campaigns);
@@ -44,7 +95,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create campaign
-  app.post("/api/campaigns", async (req, res) => {
+  app.post("/api/campaigns", requireAuth, async (req, res) => {
     try {
       console.log('📝 Creating campaign with data:', req.body);
       const validatedData = insertCampaignSchema.parse(req.body);
@@ -76,7 +127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get campaign stats
-  app.get("/api/campaigns/:id/stats", async (req, res) => {
+  app.get("/api/campaigns/:id/stats", requireAuth, async (req, res) => {
     try {
       const campaignId = parseInt(req.params.id);
       const stats = await storage.getCampaignStats(campaignId);
@@ -87,7 +138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete campaign
-  app.delete("/api/campaigns/:id", async (req, res) => {
+  app.delete("/api/campaigns/:id", requireAuth, async (req, res) => {
     try {
       const campaignId = parseInt(req.params.id);
       await storage.deleteCampaign(campaignId);
@@ -105,7 +156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get dashboard stats
-  app.get("/api/stats", async (req, res) => {
+  app.get("/api/stats", requireAuth, async (req, res) => {
     try {
       const { campaignId } = req.query;
       const stats = await storage.getStats(campaignId ? parseInt(campaignId as string) : undefined);
@@ -121,7 +172,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all students
-  app.get("/api/students", async (req, res) => {
+  app.get("/api/students", requireAuth, async (req, res) => {
     try {
       const { section, campaignId } = req.query;
       let students;
@@ -141,7 +192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get unique sections
-  app.get("/api/sections", async (req, res) => {
+  app.get("/api/sections", requireAuth, async (req, res) => {
     try {
       const { campaignId } = req.query;
       const cId = campaignId ? parseInt(campaignId as string) : undefined;
@@ -154,7 +205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload CSV
-  app.post("/api/upload-csv", upload.single('file'), async (req, res) => {
+  app.post("/api/upload-csv", requireAuth, upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
@@ -208,7 +259,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Send bulk email
-  app.post("/api/send-bulk", async (req, res) => {
+  app.post("/api/send-bulk", requireAuth, async (req, res) => {
     try {
       const { subject, message, targetSection } = req.body;
 
@@ -300,7 +351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Send individual email
-  app.post("/api/send-individual", async (req, res) => {
+  app.post("/api/send-individual", requireAuth, async (req, res) => {
     try {
       const { studentId, subject, message } = req.body;
 
@@ -360,7 +411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get email configuration
-  app.get("/api/email-config", async (req, res) => {
+  app.get("/api/email-config", requireAuth, async (req, res) => {
     try {
       const config = await storage.getEmailConfig();
       if (!config) {
@@ -384,7 +435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Send test email
-  app.post("/api/send-test", async (req, res) => {
+  app.post("/api/send-test", requireAuth, async (req, res) => {
     try {
       const { testEmail, subject, message } = req.body;
 
@@ -424,7 +475,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update email configuration
-  app.post("/api/email-config", async (req, res) => {
+  app.post("/api/email-config", requireAuth, async (req, res) => {
     try {
       const validatedData = insertEmailConfigSchema.parse(req.body);
       const config = await storage.createOrUpdateEmailConfig(validatedData);
@@ -454,7 +505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get email logs
-  app.get("/api/email-logs", async (req, res) => {
+  app.get("/api/email-logs", requireAuth, async (req, res) => {
     try {
       const { campaignId } = req.query;
       const cId = campaignId ? parseInt(campaignId as string) : undefined;
@@ -466,7 +517,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get activity logs
-  app.get("/api/activity-logs", async (req, res) => {
+  app.get("/api/activity-logs", requireAuth, async (req, res) => {
     try {
       const { limit } = req.query;
       const logs = await storage.getActivityLogs(limit ? parseInt(limit as string) : undefined);
@@ -477,7 +528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Clear all data
-  app.delete("/api/clear-data", async (req, res) => {
+  app.delete("/api/clear-data", requireAuth, async (req, res) => {
     try {
       const { campaignId } = req.query;
       const cId = campaignId ? parseInt(campaignId as string) : undefined;

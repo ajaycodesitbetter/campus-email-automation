@@ -1,5 +1,6 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
+import bcrypt from 'bcrypt';
 import * as schema from "@shared/schema";
 
 // Try to use separate variables first, fallback to DATABASE_URL
@@ -57,7 +58,8 @@ export const pool = new Pool({
   },
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 10000, // Increased timeout
+  acquireTimeoutMillis: 10000,
 });
 
 export const db = drizzle(pool, { schema });
@@ -140,4 +142,30 @@ async function createTablesIfNotExist() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  // Create admin_users table for authentication
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS admin_users (
+      id SERIAL PRIMARY KEY,
+      username VARCHAR(100) UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      email VARCHAR(255),
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Create default admin user if none exists
+  const adminCheck = await pool.query('SELECT COUNT(*) FROM admin_users');
+  if (parseInt(adminCheck.rows[0].count) === 0) {
+    // Default credentials: admin / admin123
+    // In production, change this immediately!
+    const defaultPasswordHash = await bcrypt.hash('admin123', 10);
+    await pool.query(`
+      INSERT INTO admin_users (username, password_hash, email)
+      VALUES ('admin', $1, 'admin@campus-email.local')
+    `, [defaultPasswordHash]);
+    console.log('✅ Default admin user created: admin / admin123 (CHANGE THIS!)');
+  }
 }

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { GraduationCap, Settings } from "lucide-react";
+import { GraduationCap, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 import CampaignSidebar from "@/components/CampaignSidebar";
 import CampaignMetrics from "@/components/CampaignMetrics";
 import StatsCards from "@/components/StatsCards";
@@ -14,6 +15,7 @@ import RecentActivity from "@/components/RecentActivity";
 export default function Dashboard() {
   const [showConfig, setShowConfig] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<number | null>(null);
+  const { logout, isLoggingOut } = useAuth();
   
   const { data: config } = useQuery({
     queryKey: ["/api/email-config"],
@@ -61,6 +63,16 @@ export default function Dashboard() {
                   className="bg-gray-100 hover:bg-gray-200 p-2"
                 >
                   <Settings className="text-gray-600 h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={logout}
+                  disabled={isLoggingOut}
+                  className="bg-red-100 hover:bg-red-200 p-2 text-red-600"
+                  title="Logout"
+                >
+                  <LogOut className="h-4 w-4" />
                 </Button>
               </div>
             </div>
