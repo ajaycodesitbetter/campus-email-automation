@@ -15,21 +15,9 @@ const upload = multer({
 
 // Authentication middleware
 function requireAuth(req: any, res: any, next: any) {
-  console.log('🔐 Auth middleware - Session data:', {
-    sessionId: req.sessionID,
-    userId: req.session.userId,
-    hasSession: !!req.session,
-    sessionKeys: Object.keys(req.session || {}),
-    cookies: req.headers.cookie,
-    userAgent: req.headers['user-agent']
-  });
-  
   if (!req.session.userId) {
-    console.log('❌ Authentication failed - No userId in session');
     return res.status(401).json({ error: "Authentication required" });
   }
-  
-  console.log('✅ Authentication successful - userId:', req.session.userId);
   next();
 }
 

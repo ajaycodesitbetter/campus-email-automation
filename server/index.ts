@@ -3,7 +3,6 @@ import "dotenv/config";
 
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
-import MemoryStore from "memorystore";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -36,22 +35,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Session configuration for authentication
-const MemoryStoreSession = MemoryStore(session);
-
 app.use(session({
   secret: process.env.SESSION_SECRET || 'campus-email-session-secret-2025',
   resave: false,
   saveUninitialized: false,
-  store: new MemoryStoreSession({
-    checkPeriod: 86400000 // prune expired entries every 24h
-  }),
   cookie: {
-    secure: false, // Set to false for localhost development
+    secure: process.env.NODE_ENV === 'production', // HTTPS in production
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'lax' // Allow same-site requests
-  },
-  name: 'campus.session.id' // Custom session name
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
 }));
 
 app.use((req, res, next) => {
