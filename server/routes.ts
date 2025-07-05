@@ -158,7 +158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete campaign
-  app.delete("/api/campaigns/:id", requireAuth, async (req, res) => {
+  app.delete("/api/campaigns/:id", async (req, res) => {
     try {
       const campaignId = parseInt(req.params.id);
       await storage.deleteCampaign(campaignId);
@@ -455,7 +455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Send test email
-  app.post("/api/send-test", requireAuth, async (req, res) => {
+  app.post("/api/send-test", async (req, res) => {
     try {
       const { testEmail, subject, message } = req.body;
 
@@ -495,7 +495,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update email configuration
-  app.post("/api/email-config", requireAuth, async (req, res) => {
+  app.post("/api/email-config", async (req, res) => {
     try {
       const validatedData = insertEmailConfigSchema.parse(req.body);
       const config = await storage.createOrUpdateEmailConfig(validatedData);
