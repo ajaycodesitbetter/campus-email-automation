@@ -147,7 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get campaign stats
-  app.get("/api/campaigns/:id/stats", requireAuth, async (req, res) => {
+  app.get("/api/campaigns/:id/stats", async (req, res) => {
     try {
       const campaignId = parseInt(req.params.id);
       const stats = await storage.getCampaignStats(campaignId);
@@ -192,7 +192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all students
-  app.get("/api/students", requireAuth, async (req, res) => {
+  app.get("/api/students", async (req, res) => {
     try {
       const { section, campaignId } = req.query;
       let students;
@@ -212,7 +212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get unique sections
-  app.get("/api/sections", requireAuth, async (req, res) => {
+  app.get("/api/sections", async (req, res) => {
     try {
       const { campaignId } = req.query;
       const cId = campaignId ? parseInt(campaignId as string) : undefined;
@@ -225,7 +225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload CSV
-  app.post("/api/upload-csv", requireAuth, upload.single('file'), async (req, res) => {
+  app.post("/api/upload-csv", upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
@@ -279,7 +279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Send bulk email
-  app.post("/api/send-bulk", requireAuth, async (req, res) => {
+  app.post("/api/send-bulk", async (req, res) => {
     try {
       const { subject, message, targetSection } = req.body;
 
@@ -371,7 +371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Send individual email
-  app.post("/api/send-individual", requireAuth, async (req, res) => {
+  app.post("/api/send-individual", async (req, res) => {
     try {
       const { studentId, subject, message } = req.body;
 
@@ -525,7 +525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get email logs
-  app.get("/api/email-logs", requireAuth, async (req, res) => {
+  app.get("/api/email-logs", async (req, res) => {
     try {
       const { campaignId } = req.query;
       const cId = campaignId ? parseInt(campaignId as string) : undefined;
@@ -537,7 +537,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get activity logs
-  app.get("/api/activity-logs", requireAuth, async (req, res) => {
+  app.get("/api/activity-logs", async (req, res) => {
     try {
       const { limit } = req.query;
       const logs = await storage.getActivityLogs(limit ? parseInt(limit as string) : undefined);
@@ -548,7 +548,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Clear all data
-  app.delete("/api/clear-data", requireAuth, async (req, res) => {
+  app.delete("/api/clear-data", async (req, res) => {
     try {
       const { campaignId } = req.query;
       const cId = campaignId ? parseInt(campaignId as string) : undefined;
