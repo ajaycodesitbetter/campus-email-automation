@@ -105,7 +105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get campaigns
-  app.get("/api/campaigns", requireAuth, async (req, res) => {
+  app.get("/api/campaigns", async (req, res) => {
     try {
       const campaigns = await storage.getCampaigns();
       res.json(campaigns);
@@ -115,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create campaign
-  app.post("/api/campaigns", requireAuth, async (req, res) => {
+  app.post("/api/campaigns", async (req, res) => {
     try {
       console.log('📝 Creating campaign with data:', req.body);
       const validatedData = insertCampaignSchema.parse(req.body);
@@ -176,7 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get dashboard stats
-  app.get("/api/stats", requireAuth, async (req, res) => {
+  app.get("/api/stats", async (req, res) => {
     try {
       const { campaignId } = req.query;
       const stats = await storage.getStats(campaignId ? parseInt(campaignId as string) : undefined);
@@ -431,7 +431,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get email configuration
-  app.get("/api/email-config", requireAuth, async (req, res) => {
+  app.get("/api/email-config", async (req, res) => {
     try {
       const config = await storage.getEmailConfig();
       if (!config) {
