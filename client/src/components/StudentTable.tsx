@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Table2, Search, RotateCcw, Eye, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { getApiUrl } from "@/lib/api";
 
 interface StudentTableProps {
   campaignId?: number | null;
@@ -30,7 +31,7 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
       const params = new URLSearchParams();
       if (campaignId) params.append('campaignId', campaignId.toString());
       if (selectedSection !== 'all') params.append('section', selectedSection);
-      return fetch(`/api/students?${params}`).then(res => res.json());
+      return fetch(getApiUrl(`/api/students?${params}`)).then(res => res.json());
     },
     enabled: !!campaignId,
   });
@@ -39,7 +40,7 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
     queryKey: ["/api/sections", campaignId],
     queryFn: () => {
       const params = campaignId ? `?campaignId=${campaignId}` : '';
-      return fetch(`/api/sections${params}`).then(res => res.json());
+      return fetch(getApiUrl(`/api/sections${params}`)).then(res => res.json());
     },
     enabled: !!campaignId,
   });
@@ -48,7 +49,7 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
     queryKey: ["/api/email-logs", campaignId],
     queryFn: () => {
       const params = campaignId ? `?campaignId=${campaignId}` : '';
-      return fetch(`/api/email-logs${params}`).then(res => res.json());
+      return fetch(getApiUrl(`/api/email-logs${params}`)).then(res => res.json());
     },
     enabled: !!campaignId,
   });

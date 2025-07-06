@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Edit, Eye, Send, Radio, AlertCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { getApiUrl } from "@/lib/api";
 
 interface EmailComposerProps {
   campaignId?: number | null;
@@ -41,7 +42,7 @@ Placement Cell`);
     queryKey: ["/api/sections", campaignId],
     queryFn: () => {
       const params = campaignId ? `?campaignId=${campaignId}` : '';
-      return fetch(`/api/sections${params}`).then(res => res.json());
+      return fetch(getApiUrl(`/api/sections${params}`)).then(res => res.json());
     },
     enabled: !!campaignId,
   });
@@ -52,7 +53,7 @@ Placement Cell`);
       const params = new URLSearchParams();
       if (campaignId) params.append('campaignId', campaignId.toString());
       if (selectedSection !== 'all') params.append('section', selectedSection);
-      return fetch(`/api/students?${params}`).then(res => res.json());
+      return fetch(getApiUrl(`/api/students?${params}`)).then(res => res.json());
     },
     enabled: !!campaignId,
   });

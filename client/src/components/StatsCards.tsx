@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Users, CheckCircle, AlertTriangle, Clock } from "lucide-react";
+import { getApiUrl } from "@/lib/api";
 
 interface StatsCardsProps {
   campaignId?: number | null;
@@ -11,7 +12,7 @@ export default function StatsCards({ campaignId }: StatsCardsProps) {
     queryKey: ["/api/stats", campaignId],
     queryFn: () => {
       const params = campaignId ? `?campaignId=${campaignId}` : '';
-      return fetch(`/api/stats${params}`).then(res => res.json());
+      return fetch(getApiUrl(`/api/stats${params}`)).then(res => res.json());
     },
   });
 
