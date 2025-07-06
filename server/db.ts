@@ -33,7 +33,7 @@ if (dbHost && dbUser && dbPassword && dbName) {
     console.log('Parsed port:', url.port);
     console.log('Parsed database:', url.pathname);
   } catch (e) {
-    console.error('Failed to parse DATABASE_URL:', e.message);
+    console.error('Failed to parse DATABASE_URL:', e instanceof Error ? e.message : String(e));
   }
 } else {
   throw new Error(
@@ -59,7 +59,6 @@ export const pool = new Pool({
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000, // Increased timeout
-  acquireTimeoutMillis: 10000,
 });
 
 export const db = drizzle(pool, { schema });

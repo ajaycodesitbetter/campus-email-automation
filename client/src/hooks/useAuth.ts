@@ -8,7 +8,7 @@ export function useAuth() {
   const queryClient = useQueryClient();
 
   // Check authentication status
-  const { data: authStatus } = useQuery({
+  const { data: authStatus } = useQuery<{ authenticated: boolean }>({
     queryKey: ["/api/auth-status"],
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: true,
@@ -25,8 +25,8 @@ export function useAuth() {
   });
 
   useEffect(() => {
-    if (authStatus !== undefined) {
-      setIsAuthenticated(authStatus.authenticated);
+    if (authStatus !== undefined && authStatus !== null) {
+      setIsAuthenticated(authStatus.authenticated ?? false);
       setIsLoading(false);
     }
   }, [authStatus]);

@@ -37,7 +37,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         status: "unhealthy", 
         database: "disconnected",
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         timestamp: new Date().toISOString() 
       });
     }
@@ -135,13 +135,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('❌ Campaign creation error:', error);
       console.error('❌ Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : 'UnknownError'
       });
       res.status(500).json({ 
         error: "Failed to create campaign",
-        details: error.message 
+        details: error instanceof Error ? error.message : String(error)
       });
     }
   });
