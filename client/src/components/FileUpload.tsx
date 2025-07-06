@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, CloudUpload, Info, AlertCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { getApiUrl } from "@/lib/api";
 
 interface FileUploadProps {
   campaignId?: number | null;
@@ -28,7 +29,7 @@ export default function FileUpload({ campaignId }: FileUploadProps) {
       formData.append('file', file);
       formData.append('campaignId', campaignId.toString());
       
-      const response = await fetch('/api/upload-csv', {
+      const response = await fetch(getApiUrl('/api/upload-csv'), {
         method: 'POST',
         body: formData,
         credentials: 'include',
