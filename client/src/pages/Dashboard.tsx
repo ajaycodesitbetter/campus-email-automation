@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { GraduationCap, Settings, LogOut } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { GraduationCap, Settings, LogOut, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import CampaignSidebar from "@/components/CampaignSidebar";
 import CampaignMetrics from "@/components/CampaignMetrics";
@@ -15,7 +16,10 @@ import RecentActivity from "@/components/RecentActivity";
 export default function Dashboard() {
   const [showConfig, setShowConfig] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<number | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { logout, isLoggingOut } = useAuth();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   
   const { data: config } = useQuery({
     queryKey: ["/api/email-config"],
@@ -25,6 +29,27 @@ export default function Dashboard() {
     queryKey: ["/api/campaigns", selectedCampaign],
     enabled: !!selectedCampaign,
   });
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      // Invalidate all queries to force refetch
+      await queryClient.invalidateQueries();
+      toast({
+        title: "Data Refreshed",
+        description: "All data has been refreshed successfully!",
+      });
+    } catch (error) {
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      // Add a small delay to show the animation
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -59,8 +84,19 @@ export default function Dashboard() {
                 <Button
                   variant="ghost"
                   size="sm"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="bg-blue-100 hover:bg-blue-200 p-2 text-blue-600"
+                  title="Refresh All Data"
+                >
+                  <RefreshCcw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setShowConfig(!showConfig)}
                   className="bg-gray-100 hover:bg-gray-200 p-2"
+                  title="Settings"
                 >
                   <Settings className="text-gray-600 h-4 w-4" />
                 </Button>

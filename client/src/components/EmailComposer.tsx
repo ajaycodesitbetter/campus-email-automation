@@ -69,7 +69,10 @@ Placement Cell`);
       });
       setShowTestDialog(false);
       setTestEmail("");
+      // Refresh all data after sending test email
       queryClient.invalidateQueries({ queryKey: ["/api/activity-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/email-config"] });
     },
     onError: (error: any) => {
       toast({
@@ -89,9 +92,12 @@ Placement Cell`);
         title: "Success",
         description: "Bulk email sending initiated successfully!",
       });
+      // Refresh all data after bulk email sending
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/email-logs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activity-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/email-config"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/campaign-stats"] });
     },
     onError: (error: any) => {
       toast({

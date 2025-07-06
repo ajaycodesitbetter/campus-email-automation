@@ -67,8 +67,12 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
         title: "Success",
         description: "Email resent successfully!",
       });
+      // Refresh all data after resending email
       queryClient.invalidateQueries({ queryKey: ["/api/email-logs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activity-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/email-config"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/campaign-stats"] });
     },
     onError: (error: any) => {
       toast({
