@@ -547,6 +547,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Database usage monitoring for free tier
+  app.get("/api/database-usage", async (req, res) => {
+    try {
+      const campaignCount = (await storage.getCampaigns()).length;
+      const studentCount = (await storage.getStudents()).length;
+      const emailLogCount = (await storage.getEmailLogs()).length;
+      const activityLogCount = (await storage.getActivityLogs(1000)).length;
+      
+      // Estimate storage usage
+      const estimatedStorage = {
+        campaigns: campaignCount * 50, // bytes
+        students: studentCount * 200,  // bytes  
+        emailLogs: emailLogCount * 500, // bytes
+        activityLogs: activityLogCount * 200, // bytes
+        total: (campaignCount * 50) + (studentCount * 200) + (emailLogCount * 500) + (activityLogCount * 200)
+      };
+      
+      const freeStorageLimit = 500 * 1024 * 1024; // 500MB in bytes
+      const usagePercentage = (estimatedStorage.total / freeStorageLimit) * 100;
+      
+      res.json({
+        counts: {
+          campaigns: campaignCount,
+          students: studentCount,
+          emailLogs: emailLogCount,
+          activityLogs: activityLogCount
+        },
+        storage: {
+          used: estimatedStorage,
+          freeLimit: freeStorageLimit,
+          usagePercentage: Math.round(usagePercentage * 100) / 100,
+          remainingMB: Math.round(((freeStorageLimit - estimatedStorage.total) / (1024 * 1024)) * 100) / 100
+        },
+        recommendations: {
+          status: usagePercentage < 10 ? 'excellent' : usagePercentage < 50 ? 'good' : 'monitor',
+          message: usagePercentage < 10 ? 'Usage is very low, no cleanup needed' : 
+                  usagePercentage < 50 ? 'Usage is reasonable, monitor monthly' :
+                  'Consider cleaning old data or upgrading'
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch database usage" });
+    }
+  });
+
   // Clear all data
   app.delete("/api/clear-data", async (req, res) => {
     try {
