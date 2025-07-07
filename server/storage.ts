@@ -153,6 +153,29 @@ export class DatabaseStorage implements IStorage {
 
   async getEmailConfig(): Promise<EmailConfig | undefined> {
     const [config] = await db.select().from(emailConfig).limit(1);
+    
+    if (config && config.lastResetDate) {
+      // Check if we need to reset daily usage (new day)
+      const today = new Date().toDateString();
+      const lastResetDate = new Date(config.lastResetDate).toDateString();
+      
+      if (today !== lastResetDate) {
+        console.log(`🔄 Daily reset needed: Last reset ${lastResetDate}, Today is ${today}`);
+        // Reset directly without calling this.resetDailyUsage() to avoid recursion
+        await db
+          .update(emailConfig)
+          .set({ 
+            usedToday: 0,
+            lastResetDate: new Date()
+          })
+          .where(eq(emailConfig.id, config.id));
+        
+        // Fetch the updated config after reset
+        const [updatedConfig] = await db.select().from(emailConfig).limit(1);
+        return updatedConfig || undefined;
+      }
+    }
+    
     return config || undefined;
   }
 
