@@ -2,10 +2,25 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { History, Download, SquareCheck, Trash } from "lucide-react";
+import { History, Download, SquareCheck, Trash, AlertTriangle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
-export default function RecentActivity() {
+interface RecentActivityProps {
+  selectedCampaign: number | null;
+}
+
+export default function RecentActivity({ selectedCampaign }: RecentActivityProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -13,14 +28,22 @@ export default function RecentActivity() {
     queryKey: ["/api/activity-logs"],
   });
 
+  const { data: campaigns } = useQuery({
+    queryKey: ["/api/campaigns"],
+  });
+
   const clearDataMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("DELETE", "/api/clear-data", {});
+      const params = selectedCampaign ? `?campaignId=${selectedCampaign}` : '';
+      return apiRequest("DELETE", `/api/clear-data${params}`, {});
     },
     onSuccess: () => {
+      const message = selectedCampaign 
+        ? "Campaign data cleared successfully!" 
+        : "All data cleared successfully!";
       toast({
         title: "Success",
-        description: "All data cleared successfully!",
+        description: message,
       });
       queryClient.invalidateQueries();
     },
@@ -32,6 +55,36 @@ export default function RecentActivity() {
       });
     },
   });
+
+  const getSelectedCampaignName = () => {
+    if (!selectedCampaign || !campaigns) return null;
+    const campaign = (campaigns as any[]).find((c: any) => c.id === selectedCampaign);
+    return campaign?.name || 'Selected Campaign';
+  };
+
+  const getWarningTitle = () => {
+    return selectedCampaign 
+      ? "Clear Campaign Data?" 
+      : "Clear All Data?";
+  };
+
+  const getWarningDescription = () => {
+    if (selectedCampaign) {
+      const campaignName = getSelectedCampaignName();
+      return `This will permanently delete all student data and email logs from the "${campaignName}" campaign. This action cannot be undone.`;
+    } else {
+      return "This will permanently delete ALL student data and email logs from ALL campaigns. This action cannot be undone.";
+    }
+  };
+
+  const getButtonText = () => {
+    if (clearDataMutation.isPending) {
+      return "Clearing...";
+    }
+    return selectedCampaign 
+      ? "Clear Campaign Data" 
+      : "Clear All Data";
+  };
 
   const getActivityIcon = (action: string) => {
     switch (action) {
@@ -187,15 +240,41 @@ export default function RecentActivity() {
             <SquareCheck className="mr-3 h-4 w-4 text-gray-600" />
             Validate Email Addresses
           </Button>
-          <Button
-            variant="ghost"
-            className="w-full bg-gray-50 hover:bg-gray-100 text-gray-700 p-3 text-left justify-start"
-            onClick={() => clearDataMutation.mutate()}
-            disabled={clearDataMutation.isPending}
-          >
-            <Trash className="mr-3 h-4 w-4 text-gray-600" />
-            {clearDataMutation.isPending ? "Clearing..." : "Clear All Data"}
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full bg-red-50 hover:bg-red-100 text-red-700 p-3 text-left justify-start"
+                disabled={clearDataMutation.isPending}
+              >
+                <Trash className="mr-3 h-4 w-4 text-red-600" />
+                {getButtonText()}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center">
+                  <AlertTriangle className="mr-2 h-5 w-5 text-red-600" />
+                  {getWarningTitle()}
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-gray-600">
+                  {getWarningDescription()}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={clearDataMutation.isPending}>
+                  No, Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => clearDataMutation.mutate()}
+                  disabled={clearDataMutation.isPending}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  {clearDataMutation.isPending ? "Clearing..." : "Yes, Delete"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </CardContent>
       </Card>
     </>

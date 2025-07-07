@@ -132,7 +132,7 @@ export default function Dashboard() {
             <div className="space-y-6">
               {selectedCampaign && <CampaignMetrics campaignId={selectedCampaign} />}
               <GmailConfig expanded={showConfig} />
-              <RecentActivity />
+              <RecentActivity selectedCampaign={selectedCampaign} />
             </div>
           </div>
 
