@@ -5,6 +5,10 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { registerRoutes } from "./routes";
 import { db } from "./db";
+import { setupVite } from "./vite";
+
+// Define log function
+const log = console.log;
 
 // Optimize for faster cold starts
 process.env.NODE_ENV = process.env.NODE_ENV || 'production';
