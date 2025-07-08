@@ -592,7 +592,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Clear all data
+  // Clear all data (DELETE method)
   app.delete("/api/clear-data", async (req, res) => {
     try {
       const { campaignId } = req.query;
@@ -609,6 +609,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Data cleared successfully" });
     } catch (error) {
       res.status(500).json({ error: "Failed to clear data" });
+    }
+  });
+
+  // Clear all data (POST method for Settings modal)
+  app.post("/api/clear-data", async (req, res) => {
+    try {
+      // Clear all data completely for Settings modal
+      await storage.deleteAllStudents(); // Clear all students
+      
+      // Clear campaigns (if you want to clear everything)
+      const campaigns = await storage.getCampaigns();
+      for (const campaign of campaigns) {
+        await storage.deleteCampaign(campaign.id);
+      }
+      
+      await storage.createActivityLog({
+        action: "SYSTEM_DATA_CLEARED",
+        description: "All system data cleared via Settings",
+        metadata: { source: "settings_modal" }
+      });
+
+      res.json({ message: "All data cleared successfully" });
+    } catch (error) {
+      console.error('Clear data error:', error);
+      res.status(500).json({ error: "Failed to clear data" });
+    }
+  });
+
+  // Export logs endpoint
+  app.get("/api/export-logs", async (req, res) => {
+    try {
+      const emailLogs = await storage.getEmailLogs();
+      const activityLogs = await storage.getActivityLogs(1000);
+      
+      // Create CSV content
+      let csvContent = "Type,Timestamp,Action,Details,Email,Status,CampaignId\n";
+      
+      // Add email logs
+      emailLogs.forEach(log => {
+        const row = [
+          "EMAIL",
+          log.sentAt || new Date().toISOString(),
+          "EMAIL_SENT",
+          log.subject || "",
+          log.recipientEmail || "",
+          log.status || "",
+          log.campaignId || ""
+        ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(",");
+        csvContent += row + "\n";
+      });
+      
+      // Add activity logs
+      activityLogs.forEach(log => {
+        const row = [
+          "ACTIVITY",
+          log.timestamp || new Date().toISOString(),
+          log.action || "",
+          log.description || "",
+          "",
+          "",
+          ""
+        ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(",");
+        csvContent += row + "\n";
+      });
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="email-logs-${new Date().toISOString().split('T')[0]}.csv"`);
+      res.send(csvContent);
+    } catch (error) {
+      console.error('Export logs error:', error);
+      res.status(500).json({ error: "Failed to export logs" });
     }
   });
 

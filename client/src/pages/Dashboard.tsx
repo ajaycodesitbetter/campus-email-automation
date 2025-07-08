@@ -96,10 +96,10 @@ export default function Dashboard() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowSettings(true)}
-                  className="bg-gray-100 hover:bg-gray-200 p-2"
+                  className="bg-gray-100 hover:bg-gray-200 p-2 text-gray-600"
                   title="Settings"
                 >
-                  <Settings className="text-gray-600 h-4 w-4" />
+                  <Settings className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="ghost"
