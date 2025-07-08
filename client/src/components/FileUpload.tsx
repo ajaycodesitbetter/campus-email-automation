@@ -43,15 +43,18 @@ export default function FileUpload({ campaignId }: FileUploadProps) {
       return response.json();
     },
     onSuccess: (data) => {
+      console.log('CSV Upload Success:', data);
       toast({
         title: "Success",
         description: `CSV processed successfully. ${data.recordCount} records imported.`,
       });
       setFile(null);
+      console.log('Invalidating queries after CSV upload...');
       queryClient.invalidateQueries({ queryKey: ["/api/students"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/sections"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activity-logs"] });
+      console.log('Queries invalidated, StudentTable should refresh now');
     },
     onError: (error: any) => {
       toast({

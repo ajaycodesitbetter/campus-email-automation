@@ -101,6 +101,15 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
   // Filter and paginate students with comprehensive safety checks
   const filteredStudents = (() => {
     try {
+      console.log('StudentTable: Processing students data:', {
+        students,
+        studentsType: typeof students,
+        isArray: Array.isArray(students),
+        length: students?.length,
+        campaignId,
+        selectedSection
+      });
+      
       if (!students || !Array.isArray(students)) {
         console.log('Students data is not an array:', students);
         return [];
