@@ -29,19 +29,9 @@ export default function NoCampaignSelected({ action, onCreateCampaign }: NoCampa
   const currentAction = actionTexts[action];
 
   return (
-    <Card className={`relative overflow-hidden border-2 border-dashed border-blue-200 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 shadow-lg transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+    <Card className="relative overflow-hidden border-2 border-dashed border-blue-200 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 shadow-lg">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-4 left-4 animate-pulse">
-          <Sparkles className={`h-4 w-4 text-blue-300 transition-opacity duration-500 ${sparkleIndex === 0 ? 'opacity-100' : 'opacity-30'}`} />
-        </div>
-        <div className="absolute top-8 right-6 animate-pulse delay-300">
-          <Sparkles className={`h-3 w-3 text-purple-300 transition-opacity duration-500 ${sparkleIndex === 1 ? 'opacity-100' : 'opacity-30'}`} />
-        </div>
-        <div className="absolute bottom-6 left-8 animate-pulse delay-700">
-          <Sparkles className={`h-5 w-5 text-indigo-300 transition-opacity duration-500 ${sparkleIndex === 2 ? 'opacity-100' : 'opacity-30'}`} />
-        </div>
-        
         {/* Floating circles */}
         <div className="absolute top-12 right-12 w-20 h-20 bg-blue-100 rounded-full opacity-20 animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }}></div>
         <div className="absolute bottom-12 left-12 w-16 h-16 bg-purple-100 rounded-full opacity-20 animate-bounce" style={{ animationDelay: '1s', animationDuration: '4s' }}></div>
