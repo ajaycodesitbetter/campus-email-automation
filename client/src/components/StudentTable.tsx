@@ -3,13 +3,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Table2, Search, RotateCcw, Eye, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
+import { 
+  Table2, Search, Mail, Clock, CheckCircle, XCircle, AlertCircle, MoreHorizontal,
+  ChevronLeft, ChevronRight
+} from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import { getApiUrl } from "@/lib/api";
+import NoCampaignSelected from "@/components/NoCampaignSelected";
+import { getApiUrl } from "@/lib/queryClient";
+import { RotateCcw, Eye } from "lucide-react";
 
 interface StudentTableProps {
   campaignId?: number | null;
@@ -173,13 +178,9 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
 
   if (!campaignId) {
     return (
-      <Card className="mt-8 shadow-sm border border-orange-200 bg-orange-50">
-        <CardContent className="p-8 text-center">
-          <AlertCircle className="mx-auto h-12 w-12 text-orange-400 mb-4" />
-          <h3 className="text-lg font-medium text-orange-800 mb-2">No Campaign Selected</h3>
-          <p className="text-orange-600">Please select a campaign to view student records and email status.</p>
-        </CardContent>
-      </Card>
+      <div className="mt-8">
+        <NoCampaignSelected action="upload" />
+      </div>
     );
   }
 

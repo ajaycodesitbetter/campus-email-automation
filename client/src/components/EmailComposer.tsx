@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Edit, Eye, Send, Radio, AlertCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/queryClient";
 import { getApiUrl } from "@/lib/api";
+import NoCampaignSelected from "@/components/NoCampaignSelected";
 
 interface EmailComposerProps {
   campaignId?: number | null;
@@ -160,15 +161,7 @@ Placement Cell`);
   const placeholders = ["{{Name}}", "{{Section}}", "{{Email}}"];
 
   if (!campaignId) {
-    return (
-      <Card className="shadow-sm border border-orange-200 bg-orange-50">
-        <CardContent className="p-6 text-center">
-          <AlertCircle className="mx-auto h-12 w-12 text-orange-400 mb-4" />
-          <h3 className="text-lg font-medium text-orange-800 mb-2">No Campaign Selected</h3>
-          <p className="text-orange-600">Please select or create a campaign from the sidebar to compose emails.</p>
-        </CardContent>
-      </Card>
-    );
+    return <NoCampaignSelected action="compose" />;
   }
 
   return (
