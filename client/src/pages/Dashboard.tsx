@@ -13,6 +13,7 @@ import GmailConfig from "@/components/GmailConfig";
 import Settings from "@/components/Settings";
 import StudentTable from "@/components/StudentTable";
 import RecentActivity from "@/components/RecentActivity";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Dashboard() {
   const [showSettings, setShowSettings] = useState(false);
@@ -53,7 +54,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex transition-colors duration-300">
       {/* Campaign Sidebar */}
       <CampaignSidebar 
         selectedCampaign={selectedCampaign} 
@@ -63,17 +64,17 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="flex-1">
         {/* Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200">
+        <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
           <div className="px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center">
                 <GraduationCap className="text-primary text-2xl mr-3 h-8 w-8" />
                 <div>
-                  <h1 className="text-xl font-semibold text-gray-900">
+                  <h1 className="text-xl font-semibold text-gray-900 dark:text-white transition-colors duration-300">
                     {selectedCampaign ? (selectedCampaignData as any)?.name || 'Campaign' : 'Campus Email Automation'}
                   </h1>
                   {selectedCampaign && (
-                    <p className="text-sm text-gray-500">Campaign Dashboard</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">Campaign Dashboard</p>
                   )}
                 </div>
               </div>
@@ -92,6 +93,7 @@ export default function Dashboard() {
                 >
                   <RefreshCcw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 </Button>
+                <ThemeToggle />
                 <Button
                   variant="ghost"
                   size="sm"
