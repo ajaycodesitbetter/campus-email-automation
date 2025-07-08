@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { 
   Table2, Search, Mail, Clock, CheckCircle, XCircle, AlertCircle, MoreHorizontal,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, RotateCcw, Eye
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { getApiUrl } from "@/lib/api";
@@ -29,13 +29,24 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: students, isLoading } = useQuery({
+  const { data: students, isLoading, error: studentsError } = useQuery({
     queryKey: ["/api/students", selectedSection, campaignId],
-    queryFn: () => {
-      const params = new URLSearchParams();
-      if (campaignId) params.append('campaignId', campaignId.toString());
-      if (selectedSection !== 'all') params.append('section', selectedSection);
-      return fetch(getApiUrl(`/api/students?${params}`)).then(res => res.json());
+    queryFn: async () => {
+      try {
+        const params = new URLSearchParams();
+        if (campaignId) params.append('campaignId', campaignId.toString());
+        if (selectedSection !== 'all') params.append('section', selectedSection);
+        const response = await fetch(getApiUrl(`/api/students?${params}`));
+        if (!response.ok) {
+          throw new Error(`Failed to fetch students: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log('Students data received:', data);
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('Error fetching students:', error);
+        throw error;
+      }
     },
     enabled: !!campaignId,
   });
@@ -87,12 +98,43 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
     },
   });
 
-  // Filter and paginate students
-  const filteredStudents = students?.filter((student: any) => {
-    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         student.email.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  }) || [];
+  // Filter and paginate students with comprehensive safety checks
+  const filteredStudents = (() => {
+    try {
+      if (!students || !Array.isArray(students)) {
+        console.log('Students data is not an array:', students);
+        return [];
+      }
+      
+      return students.filter((student: any) => {
+        try {
+          // Safety checks for student object
+          if (!student || typeof student !== 'object') {
+            console.warn('Invalid student object:', student);
+            return false;
+          }
+          
+          // Ensure required fields exist and are strings
+          if (!student.name || typeof student.name !== 'string' || 
+              !student.email || typeof student.email !== 'string') {
+            console.warn('Student missing required fields:', student);
+            return false;
+          }
+          
+          // Search filtering
+          const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                               student.email.toLowerCase().includes(searchTerm.toLowerCase());
+          return matchesSearch;
+        } catch (error) {
+          console.error('Error filtering individual student:', student, error);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('Error in filteredStudents calculation:', error);
+      return [];
+    }
+  })();
 
   const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
   const paginatedStudents = filteredStudents.slice(
@@ -183,6 +225,47 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
     );
   }
 
+  // Add error handling for students data
+  if (studentsError) {
+    console.error('Students data error:', studentsError);
+    return (
+      <Card className="mt-8 shadow-sm border">
+        <CardHeader>
+          <CardTitle className="flex items-center text-lg font-semibold text-red-600">
+            <AlertCircle className="mr-2 h-5 w-5" />
+            Error Loading Student Data
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <p className="text-gray-600 mb-4">
+              There was an error loading student data after CSV upload.
+            </p>
+            <p className="text-sm text-gray-500 mb-4">
+              Error: {studentsError instanceof Error ? studentsError.message : 'Unknown error'}
+            </p>
+            <Button 
+              onClick={() => {
+                console.log('Retrying students query...');
+                queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+              }}
+              className="mr-2"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Retry Loading
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => window.location.reload()}
+            >
+              Refresh Page
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (isLoading) {
     return (
       <Card className="mt-8 shadow-sm border">
@@ -268,7 +351,9 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
           <tbody className="bg-white divide-y divide-gray-200">
             {paginatedStudents.map((student: any) => {
               const emailStatus = getEmailStatus(student.id);
-              const initials = student.name.split(' ').map((n: string) => n[0]).join('').toUpperCase();
+              const initials = student?.name 
+                ? student.name.split(' ').map((n: string) => n && n[0] ? n[0] : '').join('').toUpperCase() || 'NA'
+                : 'NA';
               
               return (
                 <tr key={student.id} className="hover:bg-gray-50">
