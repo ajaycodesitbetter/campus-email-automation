@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FolderPlus, ArrowRight, Sparkles } from "lucide-react";
+import { FolderPlus, ArrowRight } from "lucide-react";
 
 interface NoCampaignSelectedProps {
   action: "upload" | "compose";
@@ -9,19 +8,6 @@ interface NoCampaignSelectedProps {
 }
 
 export default function NoCampaignSelected({ action, onCreateCampaign }: NoCampaignSelectedProps) {
-  const [isVisible, setIsVisible] = useState(false);
-  const [sparkleIndex, setSparkleIndex] = useState(0);
-
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSparkleIndex((prev) => (prev + 1) % 3);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   const actionTexts = {
     upload: {
@@ -78,7 +64,7 @@ export default function NoCampaignSelected({ action, onCreateCampaign }: NoCampa
         {/* Content */}
         <div className="space-y-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2 animate-fade-in">
+            <h2 className="text-2xl font-bold text-gray-800 mb-2 animate-pulse">
               {currentAction.title}
             </h2>
             <h3 className="text-lg font-semibold text-blue-600 mb-3 flex items-center justify-center gap-2">
@@ -124,17 +110,6 @@ export default function NoCampaignSelected({ action, onCreateCampaign }: NoCampa
         {/* Gradient border animation */}
         <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-400 via-purple-500 to-blue-400 opacity-0 hover:opacity-20 transition-opacity duration-500 -z-10"></div>
       </CardContent>
-
-      <style jsx>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .animate-fade-in {
-          animation: fade-in 0.6s ease-out;
-        }
-      `}</style>
     </Card>
   );
 }
