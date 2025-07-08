@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, CloudUpload, Info, AlertCircle } from "lucide-react";
-import { getApiUrl } from "@/lib/queryClient";
+import { getApiUrl } from "@/lib/api";
 import NoCampaignSelected from "@/components/NoCampaignSelected";
 
 interface FileUploadProps {
