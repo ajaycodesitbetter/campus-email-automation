@@ -10,11 +10,12 @@ import StatsCards from "@/components/StatsCards";
 import FileUpload from "@/components/FileUpload";
 import EmailComposer from "@/components/EmailComposer";
 import GmailConfig from "@/components/GmailConfig";
+import Settings from "@/components/Settings";
 import StudentTable from "@/components/StudentTable";
 import RecentActivity from "@/components/RecentActivity";
 
 export default function Dashboard() {
-  const [showConfig, setShowConfig] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<number | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { logout, isLoggingOut } = useAuth();
@@ -94,7 +95,7 @@ export default function Dashboard() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowConfig(!showConfig)}
+                  onClick={() => setShowSettings(true)}
                   className="bg-gray-100 hover:bg-gray-200 p-2"
                   title="Settings"
                 >
@@ -131,7 +132,7 @@ export default function Dashboard() {
             {/* Right Panel - Config & Activity */}
             <div className="space-y-6">
               {selectedCampaign && <CampaignMetrics campaignId={selectedCampaign} />}
-              <GmailConfig expanded={showConfig} />
+              <GmailConfig />
               <RecentActivity selectedCampaign={selectedCampaign} />
             </div>
           </div>
@@ -140,6 +141,12 @@ export default function Dashboard() {
           <StudentTable campaignId={selectedCampaign} />
         </div>
       </div>
+      
+      {/* Settings Modal */}
+      <Settings 
+        open={showSettings} 
+        onOpenChange={setShowSettings} 
+      />
     </div>
   );
 }
