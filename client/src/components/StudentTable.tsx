@@ -11,7 +11,8 @@ import {
   Table2, Search, Mail, Clock, CheckCircle, XCircle, AlertCircle, MoreHorizontal,
   ChevronLeft, ChevronRight
 } from "lucide-react";
-import { apiRequest, getApiUrl } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
+import { getApiUrl } from "@/lib/api";
 import NoCampaignSelected from "@/components/NoCampaignSelected";
 
 interface StudentTableProps {
