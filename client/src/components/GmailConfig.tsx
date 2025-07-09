@@ -39,9 +39,24 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/email-config"] });
     },
     onError: (error: any) => {
+      console.error('Gmail configuration error:', error);
+      let errorMessage = "Failed to update Gmail configuration";
+      
+      if (error?.message) {
+        if (error.message.includes('Invalid email configuration')) {
+          errorMessage = "Invalid Gmail credentials. Please check your email and app password.";
+        } else if (error.message.includes('Missing credentials')) {
+          errorMessage = "Please provide both email address and app password.";
+        } else if (error.message.includes('535')) {
+          errorMessage = "Gmail authentication failed. Please verify your app password.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Configuration Failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -56,6 +71,17 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
       toast({
         title: "Validation Error",
         description: "Email address is required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(senderEmail)) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a valid email address.",
         variant: "destructive",
       });
       return;

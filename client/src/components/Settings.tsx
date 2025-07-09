@@ -107,11 +107,38 @@ export default function Settings({ open, onOpenChange }: SettingsProps) {
   });
 
   const handleEmailSave = () => {
-    updateEmailMutation.mutate({
+    // Basic validation
+    if (!emailConfig.senderEmail.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Email address is required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailConfig.senderEmail)) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const updateData: any = {
       senderEmail: emailConfig.senderEmail,
-      senderPassword: emailConfig.senderPassword,
       dailyLimit: emailConfig.dailyLimit,
-    });
+    };
+
+    // Only include password if it's provided
+    if (emailConfig.senderPassword.trim()) {
+      updateData.senderPassword = emailConfig.senderPassword;
+    }
+
+    updateEmailMutation.mutate(updateData);
   };
 
   const handleClearData = () => {

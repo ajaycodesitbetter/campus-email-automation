@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import bcrypt from "bcrypt";
+import nodemailer from "nodemailer";
 import { storage } from "./storage";
 import { emailService } from "./services/emailService";
 import { csvService } from "./services/csvService";
@@ -510,19 +511,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         usedToday: existingConfig?.usedToday || 0
       };
       
-      // Only test configuration if password is provided or this is a new config
-      if (validatedData.senderPassword || !existingConfig) {
+      // Validate credentials if password is provided
+      if (validatedData.senderPassword && validatedData.senderPassword.trim()) {
         try {
-          await emailService.initialize();
+          // Test the credentials directly without saving to database first
+          const testTransporter = nodemailer.createTransporter({
+            service: "gmail",
+            auth: {
+              user: configData.senderEmail,
+              pass: configData.senderPassword,
+            },
+          });
+          
+          // Verify the connection
+          await testTransporter.verify();
+          console.log('Gmail configuration test successful');
         } catch (error) {
+          console.error('Gmail configuration test failed:', error);
           return res.status(400).json({ 
             error: "Invalid email configuration",
-            details: error instanceof Error ? error.message : 'Unknown error'
+            details: error instanceof Error ? error.message : 'Gmail authentication failed. Please check your email and app password.'
           });
         }
       }
       
+      // Save the configuration after successful validation
       const config = await storage.createOrUpdateEmailConfig(configData);
+      
+      // Re-initialize the email service with new config
+      try {
+        await emailService.initialize();
+      } catch (error) {
+        console.warn('Email service re-initialization warning:', error);
+      }
 
       res.json({
         message: "Email configuration updated successfully",
@@ -534,7 +555,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('Config update error:', error);
-      res.status(500).json({ error: "Failed to update email configuration" });
+      if (error instanceof Error && error.message.includes('parse')) {
+        res.status(400).json({ 
+          error: "Invalid request data",
+          details: error.message
+        });
+      } else {
+        res.status(500).json({ 
+          error: "Failed to update email configuration",
+          details: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
     }
   });
 
