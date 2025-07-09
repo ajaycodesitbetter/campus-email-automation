@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 import { storage } from "./storage";
 import { emailService } from "./services/emailService";
 import { csvService } from "./services/csvService";
-import { insertStudentSchema, insertEmailConfigSchema, insertCampaignSchema } from "@shared/schema";
+import { insertStudentSchema, insertEmailConfigSchema, updateEmailConfigSchema, insertCampaignSchema } from "@shared/schema";
 import { pool } from "./db";
 
 const upload = multer({ 
@@ -497,18 +497,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update email configuration
   app.post("/api/email-config", async (req, res) => {
     try {
-      const validatedData = insertEmailConfigSchema.parse(req.body);
-      const config = await storage.createOrUpdateEmailConfig(validatedData);
+      const validatedData = updateEmailConfigSchema.parse(req.body);
       
-      // Test email configuration
-      try {
-        await emailService.initialize();
-      } catch (error) {
-        return res.status(400).json({ 
-          error: "Invalid email configuration",
-          details: error instanceof Error ? error.message : 'Unknown error'
-        });
+      // Get existing config to merge with update
+      const existingConfig = await storage.getEmailConfig();
+      
+      // Merge existing config with new data
+      const configData = {
+        senderEmail: validatedData.senderEmail,
+        senderPassword: validatedData.senderPassword || existingConfig?.senderPassword || '',
+        dailyLimit: validatedData.dailyLimit,
+        usedToday: existingConfig?.usedToday || 0
+      };
+      
+      // Only test configuration if password is provided or this is a new config
+      if (validatedData.senderPassword || !existingConfig) {
+        try {
+          await emailService.initialize();
+        } catch (error) {
+          return res.status(400).json({ 
+            error: "Invalid email configuration",
+            details: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
       }
+      
+      const config = await storage.createOrUpdateEmailConfig(configData);
 
       res.json({
         message: "Email configuration updated successfully",

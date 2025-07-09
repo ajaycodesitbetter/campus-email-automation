@@ -27,7 +27,7 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
   });
 
   const updateConfigMutation = useMutation({
-    mutationFn: async (data: { senderEmail: string; senderPassword: string; dailyLimit: number }) => {
+    mutationFn: async (data: { senderEmail: string; senderPassword?: string; dailyLimit: number }) => {
       return apiRequest("POST", "/api/email-config", data);
     },
     onSuccess: () => {
@@ -48,20 +48,39 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
   });
 
   const handleSave = () => {
-    if (!senderEmail.trim() || !senderPassword.trim()) {
+    // Only require password if email is being changed or if no config exists
+    const isNewConfig = !config || !(config as any)?.configured;
+    const isEmailChanged = senderEmail !== (config as any)?.senderEmail;
+    
+    if (!senderEmail.trim()) {
       toast({
         title: "Validation Error",
-        description: "Email and password are required.",
+        description: "Email address is required.",
         variant: "destructive",
       });
       return;
     }
 
-    updateConfigMutation.mutate({
+    if ((isNewConfig || isEmailChanged) && !senderPassword.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Password is required when setting up or changing email.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const updateData: any = {
       senderEmail,
-      senderPassword,
       dailyLimit,
-    });
+    };
+
+    // Only include password if it's provided
+    if (senderPassword.trim()) {
+      updateData.senderPassword = senderPassword;
+    }
+
+    updateConfigMutation.mutate(updateData);
   };
 
   const handleEdit = () => {
@@ -122,10 +141,12 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
                 type="password"
                 value={senderPassword}
                 onChange={(e) => setSenderPassword(e.target.value)}
-                placeholder="Enter Gmail App Password"
+                placeholder={config && (config as any)?.configured ? "Leave blank to keep existing password" : "Enter Gmail App Password"}
               />
               <p className="text-xs text-gray-500 mt-1">
-                Use Gmail App Password, not your regular password
+                {config && (config as any)?.configured 
+                  ? "Leave blank to keep existing password" 
+                  : "Use Gmail App Password, not your regular password"}
               </p>
             </div>
             <div>
