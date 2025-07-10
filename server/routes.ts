@@ -237,9 +237,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Campaign ID is required" });
       }
 
-      const csvContent = req.file.buffer.toString('utf-8');
       const parsedCampaignId = parseInt(campaignId) || 1; // Default campaign ID for now
-const validation = csvService.parseFile(req.file.buffer, req.file.originalname, { campaignId: parsedCampaignId });
+      const validation = csvService.parseFile(req.file.buffer, req.file.originalname, { campaignId: parsedCampaignId });
 
       if (!validation.valid) {
         return res.status(400).json({
