@@ -1,4 +1,5 @@
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 import { InsertStudent } from '@shared/schema';
 
 export interface CSVValidationResult {
@@ -16,6 +17,50 @@ export class CSVService {
   validateEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  }
+
+  // Convert Excel file buffer to CSV content
+  parseExcel(buffer: Buffer): string {
+    try {
+      const workbook = XLSX.read(buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      return XLSX.utils.sheet_to_csv(worksheet);
+    } catch (error) {
+      throw new Error(`Failed to parse Excel file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Universal file parser - handles both CSV and Excel
+  parseFile(fileContent: string | Buffer, fileName: string, options: CSVParseOptions): CSVValidationResult {
+    try {
+      let csvContent: string;
+      
+      // Check file extension to determine format
+      const fileExt = fileName.toLowerCase().split('.').pop();
+      
+      if (fileExt === 'xlsx' || fileExt === 'xls') {
+        // Handle Excel files
+        if (typeof fileContent === 'string') {
+          throw new Error('Excel files must be processed as binary data');
+        }
+        csvContent = this.parseExcel(fileContent as Buffer);
+      } else if (fileExt === 'csv') {
+        // Handle CSV files
+        csvContent = typeof fileContent === 'string' ? fileContent : fileContent.toString('utf-8');
+      } else {
+        throw new Error('Unsupported file format. Please upload CSV or Excel files.');
+      }
+      
+      return this.parseCSV(csvContent, options);
+    } catch (error) {
+      return {
+        valid: false,
+        data: [],
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
+        duplicates: []
+      };
+    }
   }
 
   parseCSV(csvContent: string, options: CSVParseOptions): CSVValidationResult {

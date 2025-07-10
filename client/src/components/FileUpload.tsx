@@ -83,12 +83,18 @@ export default function FileUpload({ campaignId }: FileUploadProps) {
     
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile.type === 'text/csv' || droppedFile.name.endsWith('.csv')) {
+      const isValidFile = droppedFile.type === 'text/csv' || 
+                        droppedFile.name.endsWith('.csv') ||
+                        droppedFile.name.endsWith('.xlsx') ||
+                        droppedFile.name.endsWith('.xls') ||
+                        droppedFile.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+                        droppedFile.type === 'application/vnd.ms-excel';
+      if (isValidFile) {
         setFile(droppedFile);
       } else {
         toast({
           title: "Invalid File",
-          description: "Please upload a CSV file.",
+          description: "Please upload a CSV or Excel file.",
           variant: "destructive",
         });
       }
@@ -197,7 +203,7 @@ export default function FileUpload({ campaignId }: FileUploadProps) {
                 transition={{ duration: 0.3 }}
               >
                 <p className="text-lg font-medium text-gray-700 mb-2">
-                  {dragActive ? "Release to upload" : "Drop your CSV file here"}
+                  {dragActive ? "Release to upload" : "Drop your CSV or Excel file here"}
                 </p>
                 <p className="text-sm text-gray-500 mb-4">
                   {dragActive ? "" : "or click to browse files"}
@@ -212,13 +218,13 @@ export default function FileUpload({ campaignId }: FileUploadProps) {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
-            Required columns: Name, Email, Section, Subject, Message
+            Supports: CSV, Excel (.xlsx, .xls) • Required columns: Name, Email, Section
           </motion.p>
           
           <input
             ref={fileInputRef}
             type="file"
-            accept=".csv"
+            accept=".csv,.xlsx,.xls"
             onChange={handleFileSelect}
             className="hidden"
           />

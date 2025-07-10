@@ -1,0 +1,16 @@
+This file represents the structure for test-students.xlsx:
+
+| name          | email                     | section |
+|---------------|---------------------------|---------|
+| John Smith    | john@example.com         | CSE     |
+| Jane Doe      | jane@example.com         | ECE     |
+| Mike Johnson  | mike@example.com         | MBA     |
+| Sarah Wilson  | sarah@example.com        | CIVIL   |
+
+To create the actual Excel file:
+1. Open Excel or Google Sheets
+2. Create headers: name, email, section
+3. Add the data rows above
+4. Save as .xlsx format
+
+This will test the Excel upload functionality alongside CSV support.
