@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, CloudUpload, Info, AlertCircle } from "lucide-react";
+import { Upload, CloudUpload, Info, AlertCircle, FileText, CheckCircle2 } from "lucide-react";
 import { getApiUrl } from "@/lib/api";
 import NoCampaignSelected from "@/components/NoCampaignSelected";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface FileUploadProps {
   campaignId?: number | null;
@@ -124,39 +125,96 @@ export default function FileUpload({ campaignId }: FileUploadProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
-        <div
-          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+        <motion.div
+          className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 cursor-pointer ${
             dragActive
-              ? "border-primary bg-blue-50"
-              : "border-gray-300 hover:border-primary"
+              ? "border-primary bg-blue-50 scale-102"
+              : "border-gray-300 hover:border-primary hover:bg-gray-50"
           }`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
         >
-          <CloudUpload className="text-4xl text-gray-400 mb-4 h-16 w-16 mx-auto" />
-          {file ? (
-            <>
-              <p className="text-lg font-medium text-gray-700 mb-2">
-                Selected: {file.name}
-              </p>
-              <p className="text-sm text-gray-500">
-                Size: {(file.size / 1024).toFixed(1)} KB
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="text-lg font-medium text-gray-700 mb-2">
-                Drop your CSV file here
-              </p>
-              <p className="text-sm text-gray-500 mb-4">or click to browse files</p>
-            </>
-          )}
-          <p className="text-xs text-gray-400">
+          <motion.div
+            animate={{
+              y: dragActive ? -5 : 0,
+              scale: dragActive ? 1.1 : 1
+            }}
+            transition={{ duration: 0.2 }}
+          >
+            <CloudUpload className={`text-4xl mb-4 h-16 w-16 mx-auto transition-colors duration-300 ${
+              dragActive ? "text-blue-500" : "text-gray-400"
+            }`} />
+          </motion.div>
+          
+          <AnimatePresence mode="wait">
+            {file ? (
+              <motion.div
+                key="file-selected"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-2"
+              >
+                <div className="flex items-center justify-center space-x-2">
+                  <FileText className="h-5 w-5 text-green-600" />
+                  <p className="text-lg font-medium text-gray-700">
+                    {file.name}
+                  </p>
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                </div>
+                <p className="text-sm text-gray-500">
+                  Size: {(file.size / 1024).toFixed(1)} KB
+                </p>
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                  className="h-1 bg-green-200 rounded-full mx-auto max-w-xs"
+                >
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: "100%" }}
+                    transition={{ duration: 0.8, delay: 0.3 }}
+                    className="h-full bg-green-500 rounded-full"
+                  />
+                </motion.div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="no-file"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <p className="text-lg font-medium text-gray-700 mb-2">
+                  {dragActive ? "Release to upload" : "Drop your CSV file here"}
+                </p>
+                <p className="text-sm text-gray-500 mb-4">
+                  {dragActive ? "" : "or click to browse files"}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          <motion.p 
+            className="text-xs text-gray-400 mt-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
             Required columns: Name, Email, Section, Subject, Message
-          </p>
+          </motion.p>
+          
           <input
             ref={fileInputRef}
             type="file"
@@ -164,7 +222,7 @@ export default function FileUpload({ campaignId }: FileUploadProps) {
             onChange={handleFileSelect}
             className="hidden"
           />
-        </div>
+        </motion.div>
 
         <div className="mt-4 flex items-center justify-between">
           <div className="flex items-center text-sm text-gray-600">
