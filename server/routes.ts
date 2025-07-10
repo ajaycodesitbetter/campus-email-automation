@@ -698,7 +698,7 @@ const testTransporter = nodemailer.createTransport({
           log.sentAt || new Date().toISOString(),
           "EMAIL_SENT",
           log.subject || "",
-          log.recipientEmail || "",
+          log.email || "",
           log.status || "",
           log.campaignId || ""
         ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(",");
@@ -709,7 +709,7 @@ const testTransporter = nodemailer.createTransport({
       activityLogs.forEach(log => {
         const row = [
           "ACTIVITY",
-          log.timestamp || new Date().toISOString(),
+          log.createdAt?.toISOString() || new Date().toISOString(),
           log.action || "",
           log.description || "",
           "",
