@@ -34,26 +34,43 @@ export class CSVService {
   // Universal file parser - handles both CSV and Excel
   parseFile(fileContent: string | Buffer, fileName: string, options: CSVParseOptions): CSVValidationResult {
     try {
+      console.log('🔍 parseFile called with:');
+      console.log('  - fileName:', fileName);
+      console.log('  - fileContent type:', typeof fileContent);
+      console.log('  - fileContent is Buffer:', Buffer.isBuffer(fileContent));
+      
       let csvContent: string;
       
       // Check file extension to determine format
       const fileExt = fileName.toLowerCase().split('.').pop();
+      console.log('  - detected file extension:', fileExt);
       
       if (fileExt === 'xlsx' || fileExt === 'xls') {
+        console.log('📊 Processing as Excel file...');
         // Handle Excel files
         if (typeof fileContent === 'string') {
+          console.error('❌ ERROR: Excel file received as string instead of buffer!');
           throw new Error('Excel files must be processed as binary data');
         }
+        console.log('✅ Excel file received as buffer, parsing...');
         csvContent = this.parseExcel(fileContent as Buffer);
+        console.log('✅ Excel parsed to CSV, length:', csvContent.length);
+        console.log('📄 CSV preview:', csvContent.substring(0, 200) + '...');
       } else if (fileExt === 'csv') {
+        console.log('📄 Processing as CSV file...');
         // Handle CSV files
         csvContent = typeof fileContent === 'string' ? fileContent : fileContent.toString('utf-8');
       } else {
+        console.error('❌ Unsupported file format:', fileExt);
         throw new Error('Unsupported file format. Please upload CSV or Excel files.');
       }
       
-      return this.parseCSV(csvContent, options);
+      console.log('🔄 Calling parseCSV...');
+      const result = this.parseCSV(csvContent, options);
+      console.log('✅ parseCSV result:', { valid: result.valid, errors: result.errors.length, data: result.data.length });
+      return result;
     } catch (error) {
+      console.error('❌ parseFile error:', error);
       return {
         valid: false,
         data: [],

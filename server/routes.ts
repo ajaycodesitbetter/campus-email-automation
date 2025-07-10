@@ -228,17 +228,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Upload CSV
   app.post("/api/upload-csv", upload.single('file'), async (req, res) => {
     try {
+      console.log('\n🚀 CSV Upload Request Started');
+      console.log('📁 File info:', req.file ? {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        bufferType: typeof req.file.buffer,
+        isBuffer: Buffer.isBuffer(req.file.buffer)
+      } : 'No file');
+      
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
       const { campaignId } = req.body;
+      console.log('📊 Campaign ID:', campaignId);
       if (!campaignId) {
         return res.status(400).json({ error: "Campaign ID is required" });
       }
 
       const parsedCampaignId = parseInt(campaignId) || 1; // Default campaign ID for now
+      console.log('🔄 Calling csvService.parseFile...');
       const validation = csvService.parseFile(req.file.buffer, req.file.originalname, { campaignId: parsedCampaignId });
+      console.log('✅ csvService.parseFile result:', { valid: validation.valid, errors: validation.errors.length, data: validation.data.length });
 
       if (!validation.valid) {
         return res.status(400).json({
