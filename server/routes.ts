@@ -515,7 +515,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (validatedData.senderPassword && validatedData.senderPassword.trim()) {
         try {
           // Test the credentials directly without saving to database first
-          const testTransporter = nodemailer.createTransporter({
+const testTransporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
               user: configData.senderEmail,
