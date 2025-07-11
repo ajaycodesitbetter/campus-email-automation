@@ -693,6 +693,39 @@ const testTransporter = nodemailer.createTransport({
     }
   });
 
+  // Export student data endpoint
+  app.get("/api/export-students", async (req, res) => {
+    try {
+      const { campaignId } = req.query;
+      const cId = campaignId ? parseInt(campaignId as string) : undefined;
+      const students = await storage.getStudents(cId);
+      
+      // Create CSV content
+      let csvContent = "Name,Email,Section,Campaign ID,Subject,Message,Created At\n";
+      
+      // Add student data
+      students.forEach(student => {
+        const row = [
+          student.name || "",
+          student.email || "",
+          student.section || "",
+          student.campaignId || "",
+          student.subject || "",
+          student.message || "",
+          student.createdAt ? new Date(student.createdAt).toISOString() : ""
+        ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(",");
+        csvContent += row + "\n";
+      });
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="students-${new Date().toISOString().split('T')[0]}.csv"`);
+      res.send(csvContent);
+    } catch (error) {
+      console.error('Export students error:', error);
+      res.status(500).json({ error: "Failed to export student data" });
+    }
+  });
+
   // Export logs endpoint
   app.get("/api/export-logs", async (req, res) => {
     try {

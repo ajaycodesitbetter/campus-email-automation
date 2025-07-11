@@ -179,6 +179,32 @@ export default function Settings({ open, onOpenChange }: SettingsProps) {
     }
   };
 
+  const handleExportStudents = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/export-students`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `students-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Export Complete",
+        description: "Student data exported successfully!",
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Failed to export student data",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -357,6 +383,7 @@ export default function Settings({ open, onOpenChange }: SettingsProps) {
 
                   <Button 
                     variant="outline" 
+                    onClick={handleExportStudents}
                     className="w-full flex items-center gap-2"
                   >
                     <Download className="h-4 w-4" />

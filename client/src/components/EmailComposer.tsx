@@ -37,6 +37,7 @@ Placement Cell`);
   const [selectedSection, setSelectedSection] = useState("all");
   const [testEmail, setTestEmail] = useState("");
   const [showTestDialog, setShowTestDialog] = useState(false);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -266,19 +267,52 @@ Placement Cell`);
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => {
-              toast({
-                title: "Preview",
-                description: "Email preview functionality coming soon!",
-              });
-            }}
-          >
-            <Eye className="mr-2 h-4 w-4" />
-            Preview Email
-          </Button>
+          <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Preview Email
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Email Preview</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="font-semibold mb-2">Subject:</h3>
+                  <p className="text-sm bg-white p-2 rounded border">
+                    {subject.replace('{{Section}}', selectedSection === 'all' ? 'ALL_SECTIONS' : selectedSection)
+                           .replace('{{Name}}', 'John Doe')
+                           .replace('{{Email}}', 'john.doe@example.com')}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="font-semibold mb-2">Message:</h3>
+                  <div className="bg-white p-4 rounded border text-sm whitespace-pre-wrap">
+                    {message.replace(/{{Name}}/g, 'John Doe')
+                           .replace(/{{Section}}/g, selectedSection === 'all' ? 'ALL_SECTIONS' : selectedSection)
+                           .replace(/{{Email}}/g, 'john.doe@example.com')}
+                  </div>
+                </div>
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="text-xs text-blue-700">
+                    📧 This preview shows how the email will look with sample data.
+                    Placeholders will be replaced with actual student information when sent.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setShowPreviewDialog(false)}
+                  className="w-full"
+                >
+                  Close Preview
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
             <DialogTrigger asChild>
               <Button
