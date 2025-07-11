@@ -93,6 +93,7 @@ export class CSVService {
         header: true,
         skipEmptyLines: true,
         transformHeader: (header) => header.trim().toLowerCase(),
+        transform: (value) => value ? value.trim() : value,
       });
 
       if (parsed.errors.length > 0) {
@@ -117,6 +118,16 @@ export class CSVService {
       for (let i = 0; i < data.length; i++) {
         const row = data[i];
         const rowNum = i + 2; // Account for header row
+
+        // Skip rows that are completely empty (all fields are empty/null/undefined)
+        const hasAnyData = Object.values(row).some(value => 
+          value !== null && value !== undefined && String(value).trim() !== ''
+        );
+        
+        if (!hasAnyData) {
+          console.log(`⏩ Skipping empty row ${rowNum}`);
+          continue;
+        }
 
         // Validate required fields
         if (!row.name?.trim()) {
