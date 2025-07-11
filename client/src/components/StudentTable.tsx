@@ -98,6 +98,45 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
     },
   });
 
+  // Retry all failed emails
+  const retryFailedEmails = async () => {
+    if (!students || !Array.isArray(students)) {
+      toast({
+        title: "No Students Found",
+        description: "No student data available to retry.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const failedStudents = students.filter((student: any) => {
+      const status = getEmailStatus(student.id);
+      return status.status === "failed";
+    });
+
+    if (failedStudents.length === 0) {
+      toast({
+        title: "No Failed Emails",
+        description: "There are no failed emails to retry.",
+      });
+      return;
+    }
+
+    toast({
+      title: "Retrying Failed Emails",
+      description: `Retrying ${failedStudents.length} failed emails...`,
+    });
+
+    // Retry each failed email
+    for (const student of failedStudents) {
+      try {
+        await resendMutation.mutateAsync(student.id);
+      } catch (error) {
+        console.error(`Failed to retry email for ${student.name}:`, error);
+      }
+    }
+  };
+
   // Filter and paginate students with comprehensive safety checks
   const filteredStudents = (() => {
     try {
@@ -303,6 +342,15 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
             Student Records & Email Status
           </CardTitle>
           <div className="flex items-center space-x-3">
+            <Button 
+              onClick={retryFailedEmails} 
+              variant="outline" 
+              className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+              disabled={resendMutation.isPending}
+            >
+              <RotateCcw className="mr-1 h-4 w-4" />
+              {resendMutation.isPending ? "Retrying..." : "Retry Failed"}
+            </Button>
             <div className="relative">
               <Input
                 type="text"
