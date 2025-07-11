@@ -1,9 +1,13 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { History, Download, SquareCheck, Trash, AlertTriangle } from "lucide-react";
+import { getApiUrl } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
+import LogsViewer from "@/components/LogsViewer";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +25,7 @@ interface RecentActivityProps {
 }
 
 export default function RecentActivity({ selectedCampaign }: RecentActivityProps) {
+  const [showLogsViewer, setShowLogsViewer] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -186,12 +191,7 @@ export default function RecentActivity({ selectedCampaign }: RecentActivityProps
                 <Button
                   variant="ghost"
                   className="w-full text-primary hover:bg-blue-50"
-                  onClick={() => {
-                    toast({
-                      title: "View All Logs",
-                      description: "Full log viewer coming soon!",
-                    });
-                  }}
+                  onClick={() => setShowLogsViewer(true)}
                 >
                   View All Logs
                 </Button>
@@ -217,11 +217,30 @@ export default function RecentActivity({ selectedCampaign }: RecentActivityProps
           <Button
             variant="ghost"
             className="w-full bg-gray-50 hover:bg-gray-100 text-gray-700 p-3 text-left justify-start"
-            onClick={() => {
-              toast({
-                title: "Export Logs",
-                description: "Export functionality coming soon!",
-              });
+            onClick={async () => {
+              try {
+                const response = await fetch(getApiUrl("/api/export-logs"));
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `email-logs-${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                toast({
+                  title: "Export Complete",
+                  description: "Email logs exported successfully!",
+                });
+              } catch (error) {
+                toast({
+                  title: "Export Failed",
+                  description: "Failed to export email logs",
+                  variant: "destructive",
+                });
+              }
             }}
           >
             <Download className="mr-3 h-4 w-4 text-gray-600" />
@@ -277,6 +296,12 @@ export default function RecentActivity({ selectedCampaign }: RecentActivityProps
           </AlertDialog>
         </CardContent>
       </Card>
+      
+      {/* Logs Viewer Dialog */}
+      <LogsViewer 
+        open={showLogsViewer} 
+        onOpenChange={setShowLogsViewer} 
+      />
     </>
   );
 }
