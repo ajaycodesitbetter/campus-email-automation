@@ -8,6 +8,15 @@ import { emailService } from "./services/emailService";
 import { csvService } from "./services/csvService";
 import { insertStudentSchema, insertEmailConfigSchema, updateEmailConfigSchema, insertCampaignSchema } from "@shared/schema";
 import { pool } from "./db";
+import { 
+  validateLogin, 
+  validateCampaign, 
+  validateEmailConfig, 
+  validateEmailSending,
+  validateCampaignId,
+  validateQueryParams,
+  sanitizeHtml 
+} from "./middleware/validation";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -45,7 +54,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Authentication - Login
-  app.post("/api/login", async (req, res) => {
+  app.post("/api/login", validateLogin, async (req, res) => {
     const { username, password } = req.body;
     console.log('🔐 Login attempt:', { username, hasPassword: !!password });
     

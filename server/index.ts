@@ -3,10 +3,13 @@ import "dotenv/config";
 
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import { createServer } from "http";
 import { registerRoutes } from "./routes";
-import { db } from "./db";
-import { setupVite } from "./vite";
-
+import { pool } from "./db";
+import cors from "cors";
+import rateLimit from "express-rate-limit";
+import helmet from "helmet";
+import { body, validationResult } from "express-validator";
 // Define log function
 const log = console.log;
 
@@ -40,7 +43,63 @@ app.use((req, res, next) => {
   }
 });
 
-app.use(express.json());
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "https:"],
+      fontSrc: ["'self'", "https:"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
+
+// Rate limiting
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: {
+    error: "Too many requests from this IP, please try again later."
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit login attempts to 5 per 15 minutes
+  message: {
+    error: "Too many login attempts, please try again later."
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const emailLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // Limit email sending to 10 requests per minute
+  message: {
+    error: "Too many email requests, please slow down."
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiting
+app.use('/api/', generalLimiter);
+app.use('/api/login', authLimiter);
+app.use('/api/send-bulk', emailLimiter);
+app.use('/api/send-test', emailLimiter);
+app.use('/api/send-individual', emailLimiter);
+
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false }));
 
 // Session configuration for authentication
