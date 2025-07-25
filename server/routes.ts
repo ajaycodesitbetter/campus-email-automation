@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import bcrypt from "bcrypt";
@@ -54,7 +54,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Authentication - Login
-  app.post("/api/login", validateLogin, async (req, res) => {
+  app.post("/api/login", validateLogin, async (req: Request, res: Response) => {
     const { username, password } = req.body;
     console.log('🔐 Login attempt:', { username, hasPassword: !!password });
     

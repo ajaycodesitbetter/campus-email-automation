@@ -6,6 +6,7 @@ import session from "express-session";
 import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { pool } from "./db";
+import { setupVite } from "./vite";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
