@@ -249,11 +249,26 @@ export default function RecentActivity({ selectedCampaign }: RecentActivityProps
           <Button
             variant="ghost"
             className="w-full bg-gray-50 hover:bg-gray-100 text-gray-700 p-3 text-left justify-start"
-            onClick={() => {
-              toast({
-                title: "Validate Emails",
-                description: "Email validation coming soon!",
-              });
+            onClick={async () => {
+              try {
+                const response = await fetch(getApiUrl("/api/validate-emails"));
+                const result = await response.json();
+                
+                if (response.ok) {
+                  toast({
+                    title: "Email Validation Complete",
+                    description: `${result.validEmails} valid, ${result.invalidEmails} invalid email addresses found.`,
+                  });
+                } else {
+                  throw new Error(result.error || "Validation failed");
+                }
+              } catch (error) {
+                toast({
+                  title: "Validation Failed",
+                  description: error instanceof Error ? error.message : "Failed to validate emails",
+                  variant: "destructive",
+                });
+              }
             }}
           >
             <SquareCheck className="mr-3 h-4 w-4 text-gray-600" />

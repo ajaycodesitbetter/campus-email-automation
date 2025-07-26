@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -51,6 +51,46 @@ export default function Settings({ open, onOpenChange }: SettingsProps) {
     enableLogging: true,
     enableAnalytics: true,
   });
+
+  // Load system settings from localStorage when modal opens
+  React.useEffect(() => {
+    if (open) {
+      const savedSettings = localStorage.getItem('systemSettings');
+      if (savedSettings) {
+        try {
+          const parsed = JSON.parse(savedSettings);
+          setSystemSettings(prevSettings => ({
+            ...prevSettings,
+            ...parsed,
+          }));
+        } catch (error) {
+          console.error('Failed to parse system settings:', error);
+        }
+      }
+    }
+  }, [open]);
+
+  // Load email configuration from API data when modal opens or config changes
+  React.useEffect(() => {
+    if (open && config) {
+      const configData = config as any;
+      setEmailConfig(prevConfig => ({
+        ...prevConfig,
+        senderEmail: configData.senderEmail || '',
+        dailyLimit: configData.dailyLimit || 1500,
+        // Keep password blank for security - user needs to re-enter if changing
+        senderPassword: '',
+        // Load notification setting from localStorage or use default
+        enableNotifications: (() => {
+          const savedNotificationSetting = localStorage.getItem('enableNotifications');
+          if (savedNotificationSetting !== null) {
+            return JSON.parse(savedNotificationSetting);
+          }
+          return prevConfig.enableNotifications;
+        })()
+      }));
+    }
+  }, [open, config]);
 
   // Fetch current configuration
   const { data: config } = useQuery({
@@ -137,6 +177,14 @@ export default function Settings({ open, onOpenChange }: SettingsProps) {
     if (emailConfig.senderPassword.trim()) {
       updateData.senderPassword = emailConfig.senderPassword;
     }
+
+    // Save notification setting to localStorage
+    localStorage.setItem('enableNotifications', JSON.stringify(emailConfig.enableNotifications));
+    
+    // Dispatch custom event to notify other components of notification setting change
+    window.dispatchEvent(new CustomEvent('notificationSettingsChanged', {
+      detail: { enableNotifications: emailConfig.enableNotifications }
+    }));
 
     updateEmailMutation.mutate(updateData);
   };
@@ -239,7 +287,7 @@ export default function Settings({ open, onOpenChange }: SettingsProps) {
                     <Input
                       id="email"
                       type="email"
-                      value={emailConfig.senderEmail || (config as any)?.senderEmail || ''}
+                      value={emailConfig.senderEmail}
                       onChange={(e) => setEmailConfig(prev => ({ ...prev, senderEmail: e.target.value }))}
                       placeholder="admin@college.edu"
                     />
@@ -261,7 +309,7 @@ export default function Settings({ open, onOpenChange }: SettingsProps) {
                   <Input
                     id="limit"
                     type="number"
-                    value={emailConfig.dailyLimit || (config as any)?.dailyLimit || 1500}
+                    value={emailConfig.dailyLimit}
                     onChange={(e) => setEmailConfig(prev => ({ ...prev, dailyLimit: parseInt(e.target.value) || 1500 }))}
                     min="1"
                     max="10000"
@@ -341,7 +389,23 @@ export default function Settings({ open, onOpenChange }: SettingsProps) {
                   </div>
                 </div>
 
-                <Button variant="outline" className="w-full">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => {
+                    // Store system settings in localStorage for now
+                    localStorage.setItem('systemSettings', JSON.stringify(systemSettings));
+                    toast({
+                      title: "Settings Saved",
+                      description: `System settings saved! Auto-refresh set to ${systemSettings.autoRefreshInterval}s`,
+                    });
+                    
+                    // Trigger a window event to notify auto-refresh hook of settings change
+                    window.dispatchEvent(new CustomEvent('systemSettingsChanged', {
+                      detail: systemSettings
+                    }));
+                  }}
+                >
                   Save System Settings
                 </Button>
               </CardContent>
@@ -450,27 +514,47 @@ export default function Settings({ open, onOpenChange }: SettingsProps) {
                   <Button 
                     variant="outline" 
                     className="w-full"
-                    onClick={() => {
-                      toast({
-                        title: "Change Password",
-                        description: "Password change functionality will be available in next update!",
-                      });
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/login-history`);
+                        const history = await response.json();
+                        
+                        if (response.ok) {
+                          // Create and download login history CSV
+                          const csvContent = [
+                            'Timestamp,Username,IP Address,User Agent,Status',
+                            ...history.map((entry: any) => 
+                              `"${entry.timestamp}","${entry.username}","${entry.ipAddress}","${entry.userAgent.substring(0, 50)}...","${entry.status}"`
+                            )
+                          ].join('\n');
+                          
+                          const blob = new Blob([csvContent], { type: 'text/csv' });
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `login-history-${new Date().toISOString().split('T')[0]}.csv`;
+                          document.body.appendChild(a);
+                          a.click();
+                          window.URL.revokeObjectURL(url);
+                          document.body.removeChild(a);
+                          
+                          toast({
+                            title: "Login History Downloaded",
+                            description: `Found ${history.length} login records. File downloaded successfully!`,
+                          });
+                        } else {
+                          throw new Error(history.error || 'Failed to fetch login history');
+                        }
+                      } catch (error) {
+                        toast({
+                          title: "Failed to Get Login History",
+                          description: error instanceof Error ? error.message : 'Unknown error occurred',
+                          variant: "destructive",
+                        });
+                      }
                     }}
                   >
-                    Change Admin Password
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => {
-                      toast({
-                        title: "Login History",
-                        description: "Login history tracking will be available in next update!",
-                      });
-                    }}
-                  >
-                    View Login History
+                    Download Login History
                   </Button>
                   
                   <Button 

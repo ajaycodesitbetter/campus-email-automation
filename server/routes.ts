@@ -56,7 +56,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication - Login
   app.post("/api/login", validateLogin, async (req: Request, res: Response) => {
     const { username, password } = req.body;
-    console.log('🔐 Login attempt:', { username, hasPassword: !!password });
+    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    
+    console.log('🔐 Login attempt:', { username, hasPassword: !!password, ip: ipAddress });
     
     try {
       const { rows } = await pool.query('SELECT * FROM admin_users WHERE username = $1 AND is_active = true', [username]);
@@ -64,6 +67,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!user) {
         console.log('❌ User not found:', username);
+        // Log failed login attempt
+        await pool.query(
+          'INSERT INTO login_history (username, ip_address, user_agent, status) VALUES ($1, $2, $3, $4)',
+          [username, ipAddress, userAgent, 'FAILED_USER_NOT_FOUND']
+        );
         return res.status(401).json({ error: "Invalid username or password" });
       }
 
@@ -71,11 +79,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!isMatch) {
         console.log('❌ Password mismatch for user:', username);
+        // Log failed login attempt
+        await pool.query(
+          'INSERT INTO login_history (username, ip_address, user_agent, status) VALUES ($1, $2, $3, $4)',
+          [username, ipAddress, userAgent, 'FAILED_WRONG_PASSWORD']
+        );
         return res.status(401).json({ error: "Invalid username or password" });
       }
 
       // Set session data
       req.session.userId = user.id;
+      
+      // Log successful login
+      await pool.query(
+        'INSERT INTO login_history (username, ip_address, user_agent, status) VALUES ($1, $2, $3, $4)',
+        [username, ipAddress, userAgent, 'SUCCESS']
+      );
       
       console.log('✅ Login successful:', {
         userId: user.id,
@@ -94,6 +113,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('❌ Login error:', error);
+      // Log system error
+      try {
+        await pool.query(
+          'INSERT INTO login_history (username, ip_address, user_agent, status) VALUES ($1, $2, $3, $4)',
+          [username, ipAddress, userAgent, 'SYSTEM_ERROR']
+        );
+      } catch (logError) {
+        console.error('Failed to log login error:', logError);
+      }
       res.status(500).json({ error: "Failed to login" });
     }
   });
@@ -732,6 +760,81 @@ const testTransporter = nodemailer.createTransport({
     } catch (error) {
       console.error('Export students error:', error);
       res.status(500).json({ error: "Failed to export student data" });
+    }
+  });
+
+  // Email validation endpoint
+  app.get("/api/validate-emails", async (req, res) => {
+    try {
+      const { campaignId } = req.query;
+      const cId = campaignId ? parseInt(campaignId as string) : undefined;
+      const students = await storage.getStudents(cId);
+      
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      let validEmails = 0;
+      let invalidEmails = 0;
+      const invalidEmailDetails: any[] = [];
+      
+      students.forEach(student => {
+        if (emailRegex.test(student.email)) {
+          validEmails++;
+        } else {
+          invalidEmails++;
+          invalidEmailDetails.push({
+            id: student.id,
+            name: student.name,
+            email: student.email,
+            section: student.section
+          });
+        }
+      });
+      
+      // Log activity
+      await storage.createActivityLog({
+        action: "EMAIL_VALIDATION",
+        description: `Email validation completed: ${validEmails} valid, ${invalidEmails} invalid`,
+        metadata: { 
+          validCount: validEmails,
+          invalidCount: invalidEmails,
+          campaignId: cId
+        }
+      });
+      
+      res.json({
+        totalEmails: students.length,
+        validEmails,
+        invalidEmails,
+        invalidEmailDetails: invalidEmailDetails.slice(0, 10) // Limit to first 10 for response size
+      });
+    } catch (error) {
+      console.error('Email validation error:', error);
+      res.status(500).json({ error: "Failed to validate emails" });
+    }
+  });
+
+  // Get login history endpoint
+  app.get("/api/login-history", async (req, res) => {
+    try {
+      const { limit } = req.query;
+      const limitNum = limit ? parseInt(limit as string) : 50;
+      
+      const { rows } = await pool.query(
+        'SELECT username, ip_address, user_agent, status, timestamp FROM login_history ORDER BY timestamp DESC LIMIT $1',
+        [limitNum]
+      );
+      
+      const history = rows.map(row => ({
+        username: row.username,
+        ipAddress: row.ip_address,
+        userAgent: row.user_agent,
+        status: row.status,
+        timestamp: row.timestamp
+      }));
+      
+      res.json(history);
+    } catch (error) {
+      console.error('Login history error:', error);
+      res.status(500).json({ error: "Failed to fetch login history" });
     }
   });
 

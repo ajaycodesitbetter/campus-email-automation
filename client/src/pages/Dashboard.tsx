@@ -4,6 +4,7 @@ import { GraduationCap, LogOut, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import CampaignSidebar from "@/components/CampaignSidebar";
 import CampaignMetrics from "@/components/CampaignMetrics";
 import StatsCards from "@/components/StatsCards";
@@ -32,11 +33,22 @@ export default function Dashboard() {
     enabled: !!selectedCampaign,
   });
 
-  const handleRefresh = async () => {
+  // Auto-refresh functionality
+  const { isAutoRefreshing, manualRefresh, autoRefreshInterval } = useAutoRefresh({
+    enabled: true,
+    onRefresh: () => {
+      toast({
+        title: "Data Auto-Refreshed",
+        description: `Data refreshed automatically (every ${autoRefreshInterval}s)`,
+        duration: 3000,
+      });
+    },
+  });
+
+  const handleManualRefresh = async () => {
     setIsRefreshing(true);
     try {
-      // Invalidate all queries to force refetch
-      await queryClient.invalidateQueries();
+      await manualRefresh();
       toast({
         title: "Data Refreshed",
         description: "All data has been refreshed successfully!",
@@ -48,8 +60,7 @@ export default function Dashboard() {
         variant: "destructive",
       });
     } finally {
-      // Add a small delay to show the animation
-      setTimeout(() => setIsRefreshing(false), 500);
+      setIsRefreshing(false);
     }
   };
 
@@ -86,12 +97,12 @@ export default function Dashboard() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={handleRefresh}
-                  disabled={isRefreshing}
+                  onClick={handleManualRefresh}
+disabled={isAutoRefreshing || isRefreshing}
                   className="bg-blue-100 hover:bg-blue-200 p-2 text-blue-600"
                   title="Refresh All Data"
                 >
-                  <RefreshCcw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <RefreshCcw className={`h-4 w-4 ${(isRefreshing || isAutoRefreshing) ? 'animate-spin' : ''}`} />
                 </Button>
                 <ThemeToggle />
                 <Button

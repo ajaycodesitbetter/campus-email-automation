@@ -155,6 +155,18 @@ async function createTablesIfNotExist() {
     );
   `);
 
+  // Create login_history table for security tracking
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS login_history (
+      id SERIAL PRIMARY KEY,
+      username VARCHAR(100) NOT NULL,
+      ip_address VARCHAR(45),
+      user_agent TEXT,
+      status VARCHAR(20) NOT NULL,
+      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   // Create default admin user if none exists
   const adminCheck = await pool.query('SELECT COUNT(*) FROM admin_users');
   if (parseInt(adminCheck.rows[0].count) === 0) {
