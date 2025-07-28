@@ -70,6 +70,12 @@ export default function Settings({ open, onOpenChange }: SettingsProps) {
     }
   }, [open]);
 
+  // Fetch current configuration
+  const { data: config } = useQuery({
+    queryKey: ["/api/email-config"],
+    enabled: open,
+  });
+
   // Load email configuration from API data when modal opens or config changes
   React.useEffect(() => {
     if (open && config) {
@@ -91,12 +97,6 @@ export default function Settings({ open, onOpenChange }: SettingsProps) {
       }));
     }
   }, [open, config]);
-
-  // Fetch current configuration
-  const { data: config } = useQuery({
-    queryKey: ["/api/email-config"],
-    enabled: open,
-  });
 
   const { data: stats } = useQuery({
     queryKey: ["/api/stats"],

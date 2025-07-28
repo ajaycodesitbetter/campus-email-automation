@@ -4,6 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/Dashboard";
+import TestDashboard from "@/pages/TestDashboard";
+import MinimalDashboard from "@/pages/MinimalDashboard";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/not-found";
 import { useAuth } from "@/hooks/useAuth";
@@ -26,7 +28,7 @@ function AuthenticatedApp() {
 
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
+      <Route path="/" component={MinimalDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
