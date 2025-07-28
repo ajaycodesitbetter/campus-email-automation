@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/Dashboard";
 import TestDashboard from "@/pages/TestDashboard";
 import MinimalDashboard from "@/pages/MinimalDashboard";
+import SafeDashboard from "@/pages/SafeDashboard";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/not-found";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,7 +29,7 @@ function AuthenticatedApp() {
 
   return (
     <Switch>
-      <Route path="/" component={MinimalDashboard} />
+      <Route path="/" component={SafeDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
