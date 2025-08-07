@@ -15,6 +15,7 @@ import Settings from "@/components/Settings";
 import StudentTable from "@/components/StudentTable";
 import RecentActivity from "@/components/RecentActivity";
 import ThemeToggle from "@/components/ThemeToggle";
+import EmailProgressIndicator from "@/components/EmailProgressIndicator";
 
 export default function Dashboard() {
   const [showSettings, setShowSettings] = useState(false);
@@ -144,6 +145,17 @@ disabled={isAutoRefreshing || isRefreshing}
 
             {/* Right Panel - Config & Activity */}
             <div className="space-y-6">
+              {/* Real-time Email Progress */}
+              <EmailProgressIndicator 
+                campaignId={selectedCampaign}
+                onProgressUpdate={(progress) => {
+                  // Show toast notifications for important progress updates
+                  if (progress.isProcessing) {
+                    console.log(`Email Progress: ${progress.sent}/${progress.total} sent (${progress.percentage}%)`);
+                  }
+                }}
+              />
+              
               {selectedCampaign && <CampaignMetrics campaignId={selectedCampaign} />}
               <GmailConfig />
               <RecentActivity selectedCampaign={selectedCampaign} />
