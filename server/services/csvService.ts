@@ -1,4 +1,5 @@
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 import { InsertStudent } from '@shared/schema';
 
 export interface CSVValidationResult {
@@ -18,6 +19,67 @@ export class CSVService {
     return emailRegex.test(email);
   }
 
+  // Convert Excel file buffer to CSV content
+  parseExcel(buffer: Buffer): string {
+    try {
+      const workbook = XLSX.read(buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      return XLSX.utils.sheet_to_csv(worksheet);
+    } catch (error) {
+      throw new Error(`Failed to parse Excel file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Universal file parser - handles both CSV and Excel
+  parseFile(fileContent: string | Buffer, fileName: string, options: CSVParseOptions): CSVValidationResult {
+    try {
+      console.log('🔍 parseFile called with:');
+      console.log('  - fileName:', fileName);
+      console.log('  - fileContent type:', typeof fileContent);
+      console.log('  - fileContent is Buffer:', Buffer.isBuffer(fileContent));
+      
+      let csvContent: string;
+      
+      // Check file extension to determine format
+      const fileExt = fileName.toLowerCase().split('.').pop();
+      console.log('  - detected file extension:', fileExt);
+      
+      if (fileExt === 'xlsx' || fileExt === 'xls') {
+        console.log('📊 Processing as Excel file...');
+        // Handle Excel files
+        if (typeof fileContent === 'string') {
+          console.error('❌ ERROR: Excel file received as string instead of buffer!');
+          throw new Error('Excel files must be processed as binary data');
+        }
+        console.log('✅ Excel file received as buffer, parsing...');
+        csvContent = this.parseExcel(fileContent as Buffer);
+        console.log('✅ Excel parsed to CSV, length:', csvContent.length);
+        console.log('📄 CSV preview:', csvContent.substring(0, 200) + '...');
+      } else if (fileExt === 'csv') {
+        console.log('📄 Processing as CSV file...');
+        // Handle CSV files
+        csvContent = typeof fileContent === 'string' ? fileContent : fileContent.toString('utf-8');
+      } else {
+        console.error('❌ Unsupported file format:', fileExt);
+        throw new Error('Unsupported file format. Please upload CSV or Excel files.');
+      }
+      
+      console.log('🔄 Calling parseCSV...');
+      const result = this.parseCSV(csvContent, options);
+      console.log('✅ parseCSV result:', { valid: result.valid, errors: result.errors.length, data: result.data.length });
+      return result;
+    } catch (error) {
+      console.error('❌ parseFile error:', error);
+      return {
+        valid: false,
+        data: [],
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
+        duplicates: []
+      };
+    }
+  }
+
   parseCSV(csvContent: string, options: CSVParseOptions): CSVValidationResult {
     const result: CSVValidationResult = {
       valid: true,
@@ -31,6 +93,7 @@ export class CSVService {
         header: true,
         skipEmptyLines: true,
         transformHeader: (header) => header.trim().toLowerCase(),
+        transform: (value) => value ? value.trim() : value,
       });
 
       if (parsed.errors.length > 0) {
@@ -55,6 +118,16 @@ export class CSVService {
       for (let i = 0; i < data.length; i++) {
         const row = data[i];
         const rowNum = i + 2; // Account for header row
+
+        // Skip rows that are completely empty (all fields are empty/null/undefined)
+        const hasAnyData = Object.values(row).some(value => 
+          value !== null && value !== undefined && String(value).trim() !== ''
+        );
+        
+        if (!hasAnyData) {
+          console.log(`⏩ Skipping empty row ${rowNum}`);
+          continue;
+        }
 
         // Validate required fields
         if (!row.name?.trim()) {

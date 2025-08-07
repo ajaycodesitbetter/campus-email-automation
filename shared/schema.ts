@@ -71,6 +71,11 @@ export const insertEmailConfigSchema = createInsertSchema(emailConfig).omit({
   lastResetDate: true,
 });
 
+// Update schema that makes password optional
+export const updateEmailConfigSchema = insertEmailConfigSchema.extend({
+  senderPassword: z.string().optional(),
+});
+
 export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({
   id: true,
   createdAt: true,

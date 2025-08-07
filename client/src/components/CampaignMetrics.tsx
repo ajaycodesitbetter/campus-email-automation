@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { BarChart3, Users, Mail, Target } from "lucide-react";
+import { getApiUrl } from "@/lib/api";
 
 interface CampaignMetricsProps {
   campaignId: number;
@@ -11,7 +12,7 @@ interface CampaignMetricsProps {
 export default function CampaignMetrics({ campaignId }: CampaignMetricsProps) {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["/api/campaign-stats", campaignId],
-    queryFn: () => fetch(`/api/campaigns/${campaignId}/stats`).then(res => res.json()),
+    queryFn: () => fetch(getApiUrl(`/api/campaigns/${campaignId}/stats`)).then(res => res.json()),
   });
 
   if (isLoading) {

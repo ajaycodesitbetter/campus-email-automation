@@ -3,12 +3,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Table2, Search, RotateCcw, Eye, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
+import { 
+  Table2, Search, Mail, Clock, CheckCircle, XCircle, AlertCircle, MoreHorizontal,
+  ChevronLeft, ChevronRight, RotateCcw, Eye
+} from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { getApiUrl } from "@/lib/api";
+import NoCampaignSelected from "@/components/NoCampaignSelected";
 
 interface StudentTableProps {
   campaignId?: number | null;
@@ -24,13 +29,24 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: students, isLoading } = useQuery({
+  const { data: students, isLoading, error: studentsError } = useQuery({
     queryKey: ["/api/students", selectedSection, campaignId],
-    queryFn: () => {
-      const params = new URLSearchParams();
-      if (campaignId) params.append('campaignId', campaignId.toString());
-      if (selectedSection !== 'all') params.append('section', selectedSection);
-      return fetch(`/api/students?${params}`).then(res => res.json());
+    queryFn: async () => {
+      try {
+        const params = new URLSearchParams();
+        if (campaignId) params.append('campaignId', campaignId.toString());
+        if (selectedSection !== 'all') params.append('section', selectedSection);
+        const response = await fetch(getApiUrl(`/api/students?${params}`));
+        if (!response.ok) {
+          throw new Error(`Failed to fetch students: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log('Students data received:', data);
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('Error fetching students:', error);
+        throw error;
+      }
     },
     enabled: !!campaignId,
   });
@@ -39,7 +55,7 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
     queryKey: ["/api/sections", campaignId],
     queryFn: () => {
       const params = campaignId ? `?campaignId=${campaignId}` : '';
-      return fetch(`/api/sections${params}`).then(res => res.json());
+      return fetch(getApiUrl(`/api/sections${params}`)).then(res => res.json());
     },
     enabled: !!campaignId,
   });
@@ -48,7 +64,7 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
     queryKey: ["/api/email-logs", campaignId],
     queryFn: () => {
       const params = campaignId ? `?campaignId=${campaignId}` : '';
-      return fetch(`/api/email-logs${params}`).then(res => res.json());
+      return fetch(getApiUrl(`/api/email-logs${params}`)).then(res => res.json());
     },
     enabled: !!campaignId,
   });
@@ -66,8 +82,12 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
         title: "Success",
         description: "Email resent successfully!",
       });
+      // Refresh all data after resending email
       queryClient.invalidateQueries({ queryKey: ["/api/email-logs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activity-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/email-config"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/campaign-stats"] });
     },
     onError: (error: any) => {
       toast({
@@ -78,12 +98,91 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
     },
   });
 
-  // Filter and paginate students
-  const filteredStudents = students?.filter((student: any) => {
-    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         student.email.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  }) || [];
+  // Retry all failed emails
+  const retryFailedEmails = async () => {
+    if (!students || !Array.isArray(students)) {
+      toast({
+        title: "No Students Found",
+        description: "No student data available to retry.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const failedStudents = students.filter((student: any) => {
+      const status = getEmailStatus(student.id);
+      return status.status === "failed";
+    });
+
+    if (failedStudents.length === 0) {
+      toast({
+        title: "No Failed Emails",
+        description: "There are no failed emails to retry.",
+      });
+      return;
+    }
+
+    toast({
+      title: "Retrying Failed Emails",
+      description: `Retrying ${failedStudents.length} failed emails...`,
+    });
+
+    // Retry each failed email
+    for (const student of failedStudents) {
+      try {
+        await resendMutation.mutateAsync(student.id);
+      } catch (error) {
+        console.error(`Failed to retry email for ${student.name}:`, error);
+      }
+    }
+  };
+
+  // Filter and paginate students with comprehensive safety checks
+  const filteredStudents = (() => {
+    try {
+      console.log('StudentTable: Processing students data:', {
+        students,
+        studentsType: typeof students,
+        isArray: Array.isArray(students),
+        length: students?.length,
+        campaignId,
+        selectedSection
+      });
+      
+      if (!students || !Array.isArray(students)) {
+        console.log('Students data is not an array:', students);
+        return [];
+      }
+      
+      return students.filter((student: any) => {
+        try {
+          // Safety checks for student object
+          if (!student || typeof student !== 'object') {
+            console.warn('Invalid student object:', student);
+            return false;
+          }
+          
+          // Ensure required fields exist and are strings
+          if (!student.name || typeof student.name !== 'string' || 
+              !student.email || typeof student.email !== 'string') {
+            console.warn('Student missing required fields:', student);
+            return false;
+          }
+          
+          // Search filtering
+          const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                               student.email.toLowerCase().includes(searchTerm.toLowerCase());
+          return matchesSearch;
+        } catch (error) {
+          console.error('Error filtering individual student:', student, error);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('Error in filteredStudents calculation:', error);
+      return [];
+    }
+  })();
 
   const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
   const paginatedStudents = filteredStudents.slice(
@@ -168,11 +267,48 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
 
   if (!campaignId) {
     return (
-      <Card className="mt-8 shadow-sm border border-orange-200 bg-orange-50">
-        <CardContent className="p-8 text-center">
-          <AlertCircle className="mx-auto h-12 w-12 text-orange-400 mb-4" />
-          <h3 className="text-lg font-medium text-orange-800 mb-2">No Campaign Selected</h3>
-          <p className="text-orange-600">Please select a campaign to view student records and email status.</p>
+      <div className="mt-8">
+        <NoCampaignSelected action="upload" />
+      </div>
+    );
+  }
+
+  // Add error handling for students data
+  if (studentsError) {
+    console.error('Students data error:', studentsError);
+    return (
+      <Card className="mt-8 shadow-sm border">
+        <CardHeader>
+          <CardTitle className="flex items-center text-lg font-semibold text-red-600">
+            <AlertCircle className="mr-2 h-5 w-5" />
+            Error Loading Student Data
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <p className="text-gray-600 mb-4">
+              There was an error loading student data after CSV upload.
+            </p>
+            <p className="text-sm text-gray-500 mb-4">
+              Error: {studentsError instanceof Error ? studentsError.message : 'Unknown error'}
+            </p>
+            <Button 
+              onClick={() => {
+                console.log('Retrying students query...');
+                queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+              }}
+              className="mr-2"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Retry Loading
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => window.location.reload()}
+            >
+              Refresh Page
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -206,6 +342,15 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
             Student Records & Email Status
           </CardTitle>
           <div className="flex items-center space-x-3">
+            <Button 
+              onClick={retryFailedEmails} 
+              variant="outline" 
+              className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+              disabled={resendMutation.isPending}
+            >
+              <RotateCcw className="mr-1 h-4 w-4" />
+              {resendMutation.isPending ? "Retrying..." : "Retry Failed"}
+            </Button>
             <div className="relative">
               <Input
                 type="text"
@@ -263,7 +408,9 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
           <tbody className="bg-white divide-y divide-gray-200">
             {paginatedStudents.map((student: any) => {
               const emailStatus = getEmailStatus(student.id);
-              const initials = student.name.split(' ').map((n: string) => n[0]).join('').toUpperCase();
+              const initials = student?.name 
+                ? student.name.split(' ').map((n: string) => n && n[0] ? n[0] : '').join('').toUpperCase() || 'NA'
+                : 'NA';
               
               return (
                 <tr key={student.id} className="hover:bg-gray-50">

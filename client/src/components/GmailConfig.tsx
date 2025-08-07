@@ -27,7 +27,7 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
   });
 
   const updateConfigMutation = useMutation({
-    mutationFn: async (data: { senderEmail: string; senderPassword: string; dailyLimit: number }) => {
+    mutationFn: async (data: { senderEmail: string; senderPassword?: string; dailyLimit: number }) => {
       return apiRequest("POST", "/api/email-config", data);
     },
     onSuccess: () => {
@@ -39,29 +39,74 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/email-config"] });
     },
     onError: (error: any) => {
+      console.error('Gmail configuration error:', error);
+      let errorMessage = "Failed to update Gmail configuration";
+      
+      if (error?.message) {
+        if (error.message.includes('Invalid email configuration')) {
+          errorMessage = "Invalid Gmail credentials. Please check your email and app password.";
+        } else if (error.message.includes('Missing credentials')) {
+          errorMessage = "Please provide both email address and app password.";
+        } else if (error.message.includes('535')) {
+          errorMessage = "Gmail authentication failed. Please verify your app password.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Configuration Failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     },
   });
 
   const handleSave = () => {
-    if (!senderEmail.trim() || !senderPassword.trim()) {
+    // Only require password if email is being changed or if no config exists
+    const isNewConfig = !config || !(config as any)?.configured;
+    const isEmailChanged = senderEmail !== (config as any)?.senderEmail;
+    
+    if (!senderEmail.trim()) {
       toast({
         title: "Validation Error",
-        description: "Email and password are required.",
+        description: "Email address is required.",
         variant: "destructive",
       });
       return;
     }
 
-    updateConfigMutation.mutate({
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(senderEmail)) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if ((isNewConfig || isEmailChanged) && !senderPassword.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Password is required when setting up or changing email.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const updateData: any = {
       senderEmail,
-      senderPassword,
       dailyLimit,
-    });
+    };
+
+    // Only include password if it's provided
+    if (senderPassword.trim()) {
+      updateData.senderPassword = senderPassword;
+    }
+
+    updateConfigMutation.mutate(updateData);
   };
 
   const handleEdit = () => {
@@ -122,10 +167,12 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
                 type="password"
                 value={senderPassword}
                 onChange={(e) => setSenderPassword(e.target.value)}
-                placeholder="Enter Gmail App Password"
+                placeholder={config && (config as any)?.configured ? "Leave blank to keep existing password" : "Enter Gmail App Password"}
               />
               <p className="text-xs text-gray-500 mt-1">
-                Use Gmail App Password, not your regular password
+                {config && (config as any)?.configured 
+                  ? "Leave blank to keep existing password" 
+                  : "Use Gmail App Password, not your regular password"}
               </p>
             </div>
             <div>
