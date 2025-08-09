@@ -33,11 +33,16 @@ export class CSVService {
       const csvRows: string[] = [];
       
       worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
-        const csvRow = row.values.slice(1) // Remove the first undefined element
-          .map(cell => {
+        if (!row.values) return;
+        
+        // Convert row.values to array and handle the first undefined element
+        const values = Array.isArray(row.values) ? row.values.slice(1) : [];
+        
+        const csvRow = values
+          .map((cell: any) => {
             if (cell === null || cell === undefined) return '';
             // Handle different cell types
-            if (typeof cell === 'object' && 'text' in cell) {
+            if (typeof cell === 'object' && cell && 'text' in cell) {
               return `"${String(cell.text).replace(/"/g, '""')}"`;
             }
             return `"${String(cell).replace(/"/g, '""')}"`;

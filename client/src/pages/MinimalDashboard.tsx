@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { GraduationCap, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -92,14 +92,14 @@ export default function MinimalDashboard() {
                 </div>
               )}
               
-              {config && (
+              {config ? (
                 <div className="bg-gray-50 p-4 rounded">
                   <h4 className="font-medium text-gray-800">Config Data:</h4>
                   <pre className="text-sm text-gray-600 mt-2">
                     {JSON.stringify(config, null, 2)}
                   </pre>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
