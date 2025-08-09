@@ -286,7 +286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const parsedCampaignId = parseInt(campaignId) || 1; // Default campaign ID for now
       console.log('🔄 Calling csvService.parseFile...');
-      const validation = csvService.parseFile(req.file.buffer, req.file.originalname, { campaignId: parsedCampaignId });
+      const validation = await csvService.parseFile(req.file.buffer, req.file.originalname, { campaignId: parsedCampaignId });
       console.log('✅ csvService.parseFile result:', { valid: validation.valid, errors: validation.errors.length, data: validation.data.length });
 
       if (!validation.valid) {

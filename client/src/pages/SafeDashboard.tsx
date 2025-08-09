@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { GraduationCap, LogOut, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,9 +23,11 @@ export default function SafeDashboard() {
   const [showSettings, setShowSettings] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<number | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
   const { logout, isLoggingOut } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
   const { data: config } = useQuery({
     queryKey: ["/api/email-config"],

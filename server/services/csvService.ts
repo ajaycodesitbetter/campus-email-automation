@@ -1,5 +1,5 @@
 import Papa from 'papaparse';
-import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 import { InsertStudent } from '@shared/schema';
 
 export interface CSVValidationResult {
@@ -19,20 +19,41 @@ export class CSVService {
     return emailRegex.test(email);
   }
 
-  // Convert Excel file buffer to CSV content
-  parseExcel(buffer: Buffer): string {
+  // Convert Excel file buffer to CSV content using secure ExcelJS
+  async parseExcel(buffer: Buffer): Promise<string> {
     try {
-      const workbook = XLSX.read(buffer, { type: 'buffer' });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      return XLSX.utils.sheet_to_csv(worksheet);
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer);
+      
+      const worksheet = workbook.getWorksheet(1); // Get first worksheet
+      if (!worksheet) {
+        throw new Error('No worksheet found in Excel file');
+      }
+
+      const csvRows: string[] = [];
+      
+      worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+        const csvRow = row.values.slice(1) // Remove the first undefined element
+          .map(cell => {
+            if (cell === null || cell === undefined) return '';
+            // Handle different cell types
+            if (typeof cell === 'object' && 'text' in cell) {
+              return `"${String(cell.text).replace(/"/g, '""')}"`;
+            }
+            return `"${String(cell).replace(/"/g, '""')}"`;
+          })
+          .join(',');
+        csvRows.push(csvRow);
+      });
+      
+      return csvRows.join('\n');
     } catch (error) {
       throw new Error(`Failed to parse Excel file: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   // Universal file parser - handles both CSV and Excel
-  parseFile(fileContent: string | Buffer, fileName: string, options: CSVParseOptions): CSVValidationResult {
+  async parseFile(fileContent: string | Buffer, fileName: string, options: CSVParseOptions): Promise<CSVValidationResult> {
     try {
       console.log('🔍 parseFile called with:');
       console.log('  - fileName:', fileName);
@@ -53,7 +74,7 @@ export class CSVService {
           throw new Error('Excel files must be processed as binary data');
         }
         console.log('✅ Excel file received as buffer, parsing...');
-        csvContent = this.parseExcel(fileContent as Buffer);
+        csvContent = await this.parseExcel(fileContent as Buffer);
         console.log('✅ Excel parsed to CSV, length:', csvContent.length);
         console.log('📄 CSV preview:', csvContent.substring(0, 200) + '...');
       } else if (fileExt === 'csv') {
