@@ -12,7 +12,7 @@ export function useAutoRefresh(options: AutoRefreshOptions = {}) {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
   const [settings, setSettings] = useState({
-    autoRefreshInterval: 30,
+    autoRefreshInterval: 20, // Changed to 20 seconds for faster email status updates
     enableAnalytics: true,
   });
 
