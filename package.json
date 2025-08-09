@@ -55,7 +55,6 @@
     "@types/nodemailer": "^6.4.17",
     "@types/papaparse": "^5.3.16",
     "@types/pg": "^8.15.4",
-    "@types/xlsx": "^0.0.35",
     "@vitejs/plugin-react": "^4.3.2",
     "autoprefixer": "^10.4.20",
     "bcrypt": "^6.0.0",
