@@ -1,6 +1,8 @@
 import Papa from 'papaparse';
-import * as ExcelJS from 'exceljs';
 import { InsertStudent } from '@shared/schema';
+
+// Use require for ExcelJS to handle CommonJS module compatibility
+const ExcelJS = require('exceljs');
 
 export interface CSVValidationResult {
   valid: boolean;
@@ -22,6 +24,7 @@ export class CSVService {
   // Convert Excel file buffer to CSV content using secure ExcelJS
   async parseExcel(buffer: Buffer): Promise<string> {
     try {
+      // Create workbook using require-imported ExcelJS
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(buffer);
       
