@@ -265,14 +265,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Upload CSV
   app.post("/api/upload-csv", upload.single('file'), async (req, res) => {
     try {
-      console.log('\n🚀 CSV Upload Request Started');
-      console.log('📁 File info:', req.file ? {
+      console.log('\n🚀 ==== DETAILED CSV UPLOAD REQUEST ==== 🚀');
+      console.log('📁 File info received:', req.file ? {
         originalname: req.file.originalname,
         mimetype: req.file.mimetype,
         size: req.file.size,
-        bufferType: typeof req.file.buffer,
-        isBuffer: Buffer.isBuffer(req.file.buffer)
-      } : 'No file');
+        extension: req.file.originalname.split('.').pop().toLowerCase(),
+        bufferExists: !!req.file.buffer
+      } : 'No file uploaded');
       
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
@@ -290,6 +290,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('✅ csvService.parseFile result:', { valid: validation.valid, errors: validation.errors.length, data: validation.data.length });
 
       if (!validation.valid) {
+        console.error('❌ UPLOAD VALIDATION FAILED! Reason:');
+        console.error('  - Errors:', validation.errors);
+        console.error('  - Duplicates:', validation.duplicates);
         return res.status(400).json({
           error: "CSV validation failed",
           details: {

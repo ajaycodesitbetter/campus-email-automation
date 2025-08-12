@@ -38,6 +38,14 @@ export default function FileUpload({ campaignId }: FileUploadProps) {
       
       if (!response.ok) {
         const error = await response.json();
+        console.error('Upload error response:', error);
+        
+        // Handle detailed validation errors
+        if (error.details && error.details.errors && error.details.errors.length > 0) {
+          const errorList = error.details.errors.slice(0, 3).join('; ');
+          throw new Error(`Validation failed: ${errorList}${error.details.errors.length > 3 ? '...' : ''}`);
+        }
+        
         throw new Error(error.error || 'Upload failed');
       }
       
@@ -58,6 +66,7 @@ export default function FileUpload({ campaignId }: FileUploadProps) {
       console.log('Queries invalidated, StudentTable should refresh now');
     },
     onError: (error: any) => {
+      console.error('Upload mutation error:', error);
       toast({
         title: "Upload Failed",
         description: error.message,
