@@ -18,6 +18,8 @@ export const students = pgTable("students", {
   section: text("section").notNull(),
   subject: text("subject"),
   message: text("message"),
+  // Dynamic fields stored as JSON for flexibility
+  additionalFields: jsonb("additional_fields").default('{}'),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

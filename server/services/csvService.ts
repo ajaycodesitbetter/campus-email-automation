@@ -7,6 +7,9 @@ export interface CSVValidationResult {
   data: InsertStudent[];
   errors: string[];
   duplicates: string[];
+  // Dynamic field information for placeholder generation
+  availableFields: string[];
+  fieldMapping: Record<string, string>; // originalField -> placeholderName
 }
 
 export interface CSVParseOptions {
@@ -111,9 +114,24 @@ export class CSVService {
         valid: false,
         data: [],
         errors: [error instanceof Error ? error.message : 'Unknown error'],
-        duplicates: []
+        duplicates: [],
+        availableFields: [],
+        fieldMapping: {}
       };
     }
+  }
+
+  /**
+   * Convert field name to placeholder format
+   * Examples: 'student_id' -> 'Student_id', 'account number' -> 'Account_number'
+   */
+  private fieldToPlaceholder(fieldName: string): string {
+    return fieldName
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, '_') // Replace spaces and hyphens with underscores
+      .replace(/[^a-zA-Z0-9_]/g, '') // Remove special characters
+      .replace(/^(.)/, match => match.toUpperCase()); // Capitalize first letter
   }
 
   parseCSV(csvContent: string, options: CSVParseOptions): CSVValidationResult {
@@ -122,13 +140,15 @@ export class CSVService {
       data: [],
       errors: [],
       duplicates: [],
+      availableFields: [],
+      fieldMapping: {},
     };
 
     try {
       const parsed = Papa.parse(csvContent, {
         header: true,
         skipEmptyLines: true,
-        transformHeader: (header) => header.trim().toLowerCase(),
+        transformHeader: (header) => header.trim().toLowerCase().replace(/[\s-]+/g, '_'),
         transform: (value) => value ? value.trim() : value,
       });
 
@@ -138,15 +158,27 @@ export class CSVService {
         return result;
       }
 
-      const requiredColumns = ['name', 'email', 'section'];
       const headers = parsed.meta.fields || [];
+      console.log('📋 Detected columns:', headers);
+
+      // Check for required columns
+      const requiredColumns = ['name', 'email', 'section'];
       const missingColumns = requiredColumns.filter(col => !headers.includes(col));
 
       if (missingColumns.length > 0) {
         result.valid = false;
-        result.errors.push(`Missing required columns: ${missingColumns.join(', ')}`);
+        result.errors.push(`Missing required columns: ${missingColumns.join(', ')}. Required: name, email, section`);
         return result;
       }
+
+      // Generate field mapping for all columns
+      headers.forEach(header => {
+        const placeholderName = this.fieldToPlaceholder(header);
+        result.fieldMapping[header] = placeholderName;
+        result.availableFields.push(placeholderName);
+      });
+
+      console.log('🏷️ Generated placeholders:', result.fieldMapping);
 
       const emailSet = new Set<string>();
       const data = parsed.data as any[];
@@ -155,7 +187,7 @@ export class CSVService {
         const row = data[i];
         const rowNum = i + 2; // Account for header row
 
-        // Skip rows that are completely empty (all fields are empty/null/undefined)
+        // Skip rows that are completely empty
         const hasAnyData = Object.values(row).some(value => 
           value !== null && value !== undefined && String(value).trim() !== ''
         );
@@ -194,21 +226,37 @@ export class CSVService {
         }
         emailSet.add(email);
 
-        // Add valid student data
-        result.data.push({
+        // Prepare additional fields (excluding core fields)
+        const additionalFields: Record<string, any> = {};
+        Object.keys(row).forEach(key => {
+          // Skip core fields that are already handled
+          if (!['name', 'email', 'section', 'subject', 'message'].includes(key)) {
+            const value = row[key];
+            if (value !== null && value !== undefined && String(value).trim() !== '') {
+              additionalFields[key] = String(value).trim();
+            }
+          }
+        });
+
+        // Create student record
+        const studentRecord: InsertStudent = {
           name: row.name.trim(),
           email: email,
           section: row.section.trim().toUpperCase(),
           campaignId: options.campaignId,
           subject: row.subject?.trim() || '',
           message: row.message?.trim() || '',
-        });
+          additionalFields: additionalFields,
+        };
+
+        result.data.push(studentRecord);
       }
 
       if (result.errors.length > 0 || result.duplicates.length > 0) {
         result.valid = false;
       }
 
+      console.log(`✅ Parsed ${result.data.length} student records with ${result.availableFields.length} available placeholders`);
       return result;
     } catch (error) {
       result.valid = false;

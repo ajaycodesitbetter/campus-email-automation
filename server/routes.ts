@@ -262,6 +262,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get available placeholders for a campaign
+  app.get("/api/placeholders", async (req, res) => {
+    try {
+      const { campaignId } = req.query;
+      const cId = campaignId ? parseInt(campaignId as string) : undefined;
+      
+      if (!cId) {
+        // Return default placeholders if no campaign specified
+        return res.json({
+          availableFields: ['Name', 'Email', 'Section'],
+          fieldMapping: {
+            'name': 'Name',
+            'email': 'Email', 
+            'section': 'Section'
+          }
+        });
+      }
+      
+      const students = await storage.getStudents(cId);
+      
+      if (students.length === 0) {
+        // Return default placeholders if no students
+        return res.json({
+          availableFields: ['Name', 'Email', 'Section'],
+          fieldMapping: {
+            'name': 'Name',
+            'email': 'Email',
+            'section': 'Section'
+          }
+        });
+      }
+      
+      // Extract all available fields from students
+      const availableFields = ['Name', 'Email', 'Section']; // Always include core fields
+      const fieldMapping: Record<string, string> = {
+        'name': 'Name',
+        'email': 'Email',
+        'section': 'Section'
+      };
+      
+      // Check additional fields from first student (they should all have same structure)
+      const firstStudent = students[0];
+      if (firstStudent.additionalFields && typeof firstStudent.additionalFields === 'object') {
+        Object.keys(firstStudent.additionalFields).forEach(key => {
+          const placeholderName = key.replace(/^(.)/, match => match.toUpperCase());
+          availableFields.push(placeholderName);
+          fieldMapping[key] = placeholderName;
+        });
+      }
+      
+      console.log('🏷️ Available placeholders for campaign', cId, ':', availableFields);
+      
+      res.json({
+        availableFields,
+        fieldMapping
+      });
+    } catch (error) {
+      console.error('Placeholders fetch error:', error);
+      res.status(500).json({ error: "Failed to fetch available placeholders" });
+    }
+  });
+
   // Upload CSV
   app.post("/api/upload-csv", upload.single('file'), async (req, res) => {
     try {
@@ -317,7 +379,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         message: "CSV processed successfully",
         recordCount: students.length,
-        students
+        students,
+        // Include dynamic field information
+        availableFields: validation.availableFields,
+        fieldMapping: validation.fieldMapping
       });
     } catch (error) {
       console.error('CSV upload error:', error);
@@ -348,17 +413,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create email logs for tracking
       const emailLogs: any[] = [];
       for (const student of students) {
-        const personalizedSubject = emailService.replacePlaceholders(subject, {
+        // Build dynamic placeholder data
+        const placeholderData: Record<string, string> = {
           Name: student.name,
           Section: student.section,
           Email: student.email,
-        });
-        
-        const personalizedMessage = emailService.replacePlaceholders(message, {
-          Name: student.name,
-          Section: student.section,
-          Email: student.email,
-        });
+        };
+
+        // Add additional fields if they exist
+        if (student.additionalFields && typeof student.additionalFields === 'object') {
+          Object.keys(student.additionalFields).forEach(key => {
+            // Convert field name to placeholder format (e.g., 'student_id' -> 'Student_id')
+            const placeholderName = key.replace(/^(.)/, match => match.toUpperCase());
+            const additionalFields = student.additionalFields as Record<string, any>;
+            placeholderData[placeholderName] = String(additionalFields[key]);
+          });
+        }
+
+        console.log('🏷️ Available placeholders for', student.name, ':', Object.keys(placeholderData));
+
+        const personalizedSubject = emailService.replacePlaceholders(subject, placeholderData);
+        const personalizedMessage = emailService.replacePlaceholders(message, placeholderData);
 
         const log = await storage.createEmailLog({
           campaignId: student.campaignId,
