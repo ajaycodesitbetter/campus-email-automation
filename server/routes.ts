@@ -420,14 +420,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           Email: student.email,
         };
 
-        // Add additional fields if they exist
-        if (student.additionalFields && typeof student.additionalFields === 'object') {
-          Object.keys(student.additionalFields).forEach(key => {
-            // Convert field name to placeholder format (e.g., 'student_id' -> 'Student_id')
-            const placeholderName = key.replace(/^(.)/, match => match.toUpperCase());
-            const additionalFields = student.additionalFields as Record<string, any>;
-            placeholderData[placeholderName] = String(additionalFields[key]);
-          });
+        // Add additional fields if they exist (safe handling for new feature)
+        try {
+          if (student.additionalFields && typeof student.additionalFields === 'object' && student.additionalFields !== null) {
+            Object.keys(student.additionalFields).forEach(key => {
+              // Convert field name to placeholder format (e.g., 'student_id' -> 'Student_id')
+              const placeholderName = key.replace(/^(.)/, match => match.toUpperCase());
+              const additionalFields = student.additionalFields as Record<string, any>;
+              if (additionalFields[key] !== null && additionalFields[key] !== undefined) {
+                placeholderData[placeholderName] = String(additionalFields[key]);
+              }
+            });
+          }
+        } catch (error) {
+          console.warn('⚠️ Warning: Could not process additional fields for student', student.name, ':', error);
+          // Continue processing without additional fields
         }
 
         console.log('🏷️ Available placeholders for', student.name, ':', Object.keys(placeholderData));

@@ -246,7 +246,7 @@ export class CSVService {
           campaignId: options.campaignId,
           subject: row.subject?.trim() || '',
           message: row.message?.trim() || '',
-          additionalFields: additionalFields,
+          additionalFields: Object.keys(additionalFields).length > 0 ? additionalFields : null,
         };
 
         result.data.push(studentRecord);

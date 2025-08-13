@@ -83,10 +83,10 @@ async function createTablesIfNotExist() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS campaigns (
       id SERIAL PRIMARY KEY,
-      name VARCHAR(255) NOT NULL,
+      name VARCHAR(255) NOT NULL UNIQUE,
       description TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      emoji TEXT DEFAULT '📧',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
@@ -98,6 +98,9 @@ async function createTablesIfNotExist() {
       name VARCHAR(255) NOT NULL,
       email VARCHAR(255) NOT NULL,
       section VARCHAR(100) NOT NULL,
+      subject TEXT,
+      message TEXT,
+      additional_fields JSONB,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -122,12 +125,10 @@ async function createTablesIfNotExist() {
     CREATE TABLE IF NOT EXISTS email_config (
       id SERIAL PRIMARY KEY,
       sender_email VARCHAR(255) NOT NULL,
-      app_password TEXT NOT NULL,
+      sender_password TEXT NOT NULL,
       daily_limit INTEGER DEFAULT 1500,
       used_today INTEGER DEFAULT 0,
-      last_reset_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      last_reset_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
@@ -166,6 +167,36 @@ async function createTablesIfNotExist() {
       timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  // Handle column additions for existing tables
+  try {
+    // Add emoji column to campaigns if it doesn't exist
+    await pool.query(`
+      ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT '📧';
+    `);
+    
+    // Add subject, message, and additional_fields columns to students if they don't exist
+    await pool.query(`
+      ALTER TABLE students ADD COLUMN IF NOT EXISTS subject TEXT;
+    `);
+    await pool.query(`
+      ALTER TABLE students ADD COLUMN IF NOT EXISTS message TEXT;
+    `);
+    await pool.query(`
+      ALTER TABLE students ADD COLUMN IF NOT EXISTS additional_fields JSONB;
+    `);
+    
+    // Add unique constraint to campaign name if it doesn't exist
+    await pool.query(`
+      ALTER TABLE campaigns ADD CONSTRAINT campaigns_name_unique UNIQUE (name)
+      ON CONFLICT DO NOTHING;
+    `).catch(() => {
+      // Ignore error if constraint already exists
+      console.log('Campaign name unique constraint already exists or failed to add');
+    });
+  } catch (error) {
+    console.log('Column additions completed (some may have already existed)');
+  }
 
   // Create default admin user if none exists
   const adminCheck = await pool.query('SELECT COUNT(*) FROM admin_users');
