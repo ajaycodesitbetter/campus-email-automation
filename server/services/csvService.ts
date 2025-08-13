@@ -1,5 +1,5 @@
 import Papa from 'papaparse';
-import * as ExcelJS from 'exceljs';
+import ExcelJS from 'exceljs';
 import { InsertStudent } from '@shared/schema';
 
 export interface CSVValidationResult {
@@ -22,13 +22,33 @@ export class CSVService {
   // Convert Excel file buffer to CSV content using secure ExcelJS
   async parseExcel(buffer: Buffer): Promise<string> {
     try {
+      console.log('🔄 Starting Excel parsing...');
+      console.log('📊 Buffer details:', { size: buffer.length, type: typeof buffer });
+      
+      // Verify ExcelJS import
+      console.log('📦 ExcelJS availability check:', {
+        ExcelJSExists: !!ExcelJS,
+        WorkbookExists: !!(ExcelJS && ExcelJS.Workbook),
+        WorkbookType: ExcelJS && ExcelJS.Workbook ? typeof ExcelJS.Workbook : 'undefined'
+      });
+      
+      if (!ExcelJS || !ExcelJS.Workbook) {
+        throw new Error('ExcelJS or Workbook class not available');
+      }
+      
+      console.log('🏗️ Creating ExcelJS Workbook instance...');
       const workbook = new ExcelJS.Workbook();
+      console.log('✅ Workbook created successfully:', workbook.constructor.name);
+      
+      console.log('📖 Loading Excel data from buffer...');
       await workbook.xlsx.load(buffer);
+      console.log('✅ Excel data loaded successfully');
       
       const worksheet = workbook.getWorksheet(1); // Get first worksheet
       if (!worksheet) {
         throw new Error('No worksheet found in Excel file');
       }
+      console.log('📋 Worksheet found:', { name: worksheet.name, rowCount: worksheet.rowCount });
 
       const csvRows: string[] = [];
       
@@ -51,8 +71,14 @@ export class CSVService {
         csvRows.push(csvRow);
       });
       
+      console.log('✅ Excel to CSV conversion completed:', { totalRows: csvRows.length });
       return csvRows.join('\n');
     } catch (error) {
+      console.error('❌ Excel parsing error:', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        errorType: error instanceof Error ? error.constructor.name : typeof error
+      });
       throw new Error(`Failed to parse Excel file: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
