@@ -262,6 +262,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint to check student data structure
+  app.get("/api/debug-students", async (req, res) => {
+    try {
+      const { campaignId } = req.query;
+      const cId = campaignId ? parseInt(campaignId as string) : undefined;
+      const students = await storage.getStudents(cId);
+      
+      console.log('🔍 Debug - Raw student data:', JSON.stringify(students, null, 2));
+      
+      if (students.length > 0) {
+        const firstStudent = students[0];
+        console.log('🔍 Debug - First student structure:', {
+          name: firstStudent.name,
+          email: firstStudent.email,
+          section: firstStudent.section,
+          additionalFields: firstStudent.additionalFields,
+          additionalFieldsType: typeof firstStudent.additionalFields,
+        });
+      }
+      
+      res.json({
+        totalStudents: students.length,
+        firstStudentSample: students[0] || null,
+        debug: 'Check server console for detailed logs'
+      });
+    } catch (error) {
+      console.error('Debug students error:', error);
+      res.status(500).json({ error: 'Debug failed' });
+    }
+  });
+
   // Get available placeholders for a campaign
   app.get("/api/placeholders", async (req, res) => {
     try {
@@ -304,12 +335,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check additional fields from first student (they should all have same structure)
       const firstStudent = students[0];
+      console.log('🔍 Debug - First student additionalFields:', firstStudent.additionalFields);
+      console.log('🔍 Debug - additionalFields type:', typeof firstStudent.additionalFields);
+      
       if (firstStudent.additionalFields && typeof firstStudent.additionalFields === 'object') {
         Object.keys(firstStudent.additionalFields).forEach(key => {
           const placeholderName = key.replace(/^(.)/, match => match.toUpperCase());
           availableFields.push(placeholderName);
           fieldMapping[key] = placeholderName;
+          console.log('🔍 Adding custom placeholder:', key, '->', placeholderName);
         });
+      } else {
+        console.log('🔍 No additionalFields found or not an object');
       }
       
       console.log('🏷️ Available placeholders for campaign', cId, ':', availableFields);
