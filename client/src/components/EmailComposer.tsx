@@ -98,7 +98,7 @@ Placement Cell`);
   });
 
   const sendBulkMutation = useMutation({
-    mutationFn: async (data: { subject: string; message: string; targetSection: string }) => {
+    mutationFn: async (data: { subject: string; message: string; targetSection: string; campaignId?: number | null }) => {
       return apiRequest("POST", "/api/send-bulk", data);
     },
     onSuccess: () => {
@@ -176,6 +176,7 @@ Placement Cell`);
       subject,
       message,
       targetSection: selectedSection,
+      campaignId,
     });
   };
 
@@ -269,7 +270,7 @@ Placement Cell`);
             Available Placeholders:
           </p>
           <div className="flex flex-wrap gap-2">
-            {placeholders.map((placeholder) => (
+            {placeholders.map((placeholder: string) => (
               <Badge
                 key={placeholder}
                 variant="secondary"

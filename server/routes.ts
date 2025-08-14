@@ -393,17 +393,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Send bulk email
   app.post("/api/send-bulk", async (req, res) => {
     try {
-      const { subject, message, targetSection } = req.body;
+      const { subject, message, targetSection, campaignId } = req.body;
 
       if (!subject || !message) {
         return res.status(400).json({ error: "Subject and message are required" });
       }
 
+      // Use campaign ID if provided
       let students;
       if (targetSection === 'all') {
-        students = await storage.getStudents();
+        students = await storage.getStudents(campaignId ? parseInt(campaignId.toString()) : undefined);
       } else {
-        students = await storage.getStudentsBySection(targetSection);
+        students = await storage.getStudentsBySection(targetSection, campaignId ? parseInt(campaignId.toString()) : undefined);
       }
 
       if (students.length === 0) {
