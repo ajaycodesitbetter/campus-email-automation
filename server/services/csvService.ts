@@ -234,9 +234,12 @@ export class CSVService {
             const value = row[key];
             if (value !== null && value !== undefined && String(value).trim() !== '') {
               additionalFields[key] = String(value).trim();
+              console.log('🔍 Adding additional field:', key, '=', String(value).trim());
             }
           }
         });
+        
+        console.log('🔍 Total additional fields for student:', Object.keys(additionalFields));
 
         // Create student record
         const studentRecord: InsertStudent = {

@@ -299,8 +299,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { campaignId } = req.query;
       const cId = campaignId ? parseInt(campaignId as string) : undefined;
       
+      console.log('🏷️ Placeholders API called for campaign:', cId);
+      
       if (!cId) {
         // Return default placeholders if no campaign specified
+        console.log('🏷️ No campaign ID provided, returning default placeholders');
         return res.json({
           availableFields: ['Name', 'Email', 'Section'],
           fieldMapping: {
@@ -312,9 +315,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const students = await storage.getStudents(cId);
+      console.log(`🏷️ Found ${students.length} students for campaign ${cId}`);
       
       if (students.length === 0) {
         // Return default placeholders if no students
+        console.log('🏷️ No students found, returning default placeholders');
         return res.json({
           availableFields: ['Name', 'Email', 'Section'],
           fieldMapping: {
@@ -325,7 +330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Extract all available fields from students
+      // Extract all available fields from ALL students (not just the first)
       const availableFields = ['Name', 'Email', 'Section']; // Always include core fields
       const fieldMapping: Record<string, string> = {
         'name': 'Name',
@@ -333,30 +338,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'section': 'Section'
       };
       
-      // Check additional fields from first student (they should all have same structure)
-      const firstStudent = students[0];
-      console.log('🔍 Debug - First student additionalFields:', firstStudent.additionalFields);
-      console.log('🔍 Debug - additionalFields type:', typeof firstStudent.additionalFields);
+      // Collect all unique additional fields from all students
+      const allAdditionalFields = new Set<string>();
       
-      if (firstStudent.additionalFields && typeof firstStudent.additionalFields === 'object') {
-        Object.keys(firstStudent.additionalFields).forEach(key => {
-          const placeholderName = key.replace(/^(.)/, match => match.toUpperCase());
-          availableFields.push(placeholderName);
-          fieldMapping[key] = placeholderName;
-          console.log('🔍 Adding custom placeholder:', key, '->', placeholderName);
-        });
-      } else {
-        console.log('🔍 No additionalFields found or not an object');
-      }
+      students.forEach((student, index) => {
+        console.log(`🔍 Student ${index + 1}/${students.length} - ${student.name}:`);
+        console.log('   additionalFields type:', typeof student.additionalFields);
+        console.log('   additionalFields raw value:', JSON.stringify(student.additionalFields));
+        
+        if (student.additionalFields) {
+          let fieldsObj: any = null;
+          
+          // Handle both object and string formats
+          if (typeof student.additionalFields === 'string') {
+            try {
+              fieldsObj = JSON.parse(student.additionalFields);
+              console.log('   Parsed as JSON:', fieldsObj);
+            } catch (e) {
+              console.log('   Failed to parse as JSON, skipping:', e.message);
+            }
+          } else if (typeof student.additionalFields === 'object' && student.additionalFields !== null) {
+            fieldsObj = student.additionalFields;
+            console.log('   Already an object:', fieldsObj);
+          }
+          
+          if (fieldsObj && typeof fieldsObj === 'object') {
+            const fields = Object.keys(fieldsObj);
+            console.log('   Fields found:', fields);
+            fields.forEach(field => {
+              allAdditionalFields.add(field);
+              console.log('     Added field to set:', field);
+            });
+          } else {
+            console.log('   No valid object found in additionalFields');
+          }
+        } else {
+          console.log('   No additionalFields for this student');
+        }
+      });
       
-      console.log('🏷️ Available placeholders for campaign', cId, ':', availableFields);
+      console.log('\n🏷️ All unique additional fields collected:', Array.from(allAdditionalFields));
+      
+      // Add custom fields to available placeholders
+      Array.from(allAdditionalFields).forEach(key => {
+        const placeholderName = key.replace(/^(.)/, match => match.toUpperCase());
+        availableFields.push(placeholderName);
+        fieldMapping[key] = placeholderName;
+        console.log('🏷️ Added custom placeholder:', key, '->', placeholderName);
+      });
+      
+      console.log('\n🏷️ FINAL Available placeholders for campaign', cId, ':', availableFields);
+      console.log('🏷️ FINAL Field mapping:', fieldMapping);
       
       res.json({
         availableFields,
         fieldMapping
       });
     } catch (error) {
-      console.error('Placeholders fetch error:', error);
+      console.error('❌ Placeholders fetch error:', error);
       res.status(500).json({ error: "Failed to fetch available placeholders" });
     }
   });
