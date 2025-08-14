@@ -62,6 +62,16 @@ Placement Cell`);
     enabled: !!campaignId,
   });
 
+  // Fetch dynamic placeholders for the current campaign
+  const { data: placeholdersData } = useQuery({
+    queryKey: ["/api/placeholders", campaignId],
+    queryFn: () => {
+      const params = campaignId ? `?campaignId=${campaignId}` : '';
+      return fetch(getApiUrl(`/api/placeholders${params}`)).then(res => res.json());
+    },
+    enabled: !!campaignId,
+  });
+
   const sendTestMutation = useMutation({
     mutationFn: async (data: { testEmail: string; subject: string; message: string }) => {
       return apiRequest("POST", "/api/send-test", data);
@@ -122,13 +132,28 @@ Placement Cell`);
       return;
     }
 
-    const testSubject = subject.replace('{{Section}}', 'TEST_SECTION')
-                             .replace('{{Name}}', 'Test User')
-                             .replace('{{Email}}', testEmail);
+    // Replace all placeholders with test values
+    let testSubject = subject;
+    let testMessage = message;
     
-    const testMessage = message.replace(/{{Name}}/g, 'Test User')
-                              .replace(/{{Section}}/g, 'TEST_SECTION')
-                              .replace(/{{Email}}/g, testEmail);
+    // Replace standard placeholders
+    testSubject = testSubject.replace(/{{Section}}/g, 'TEST_SECTION')
+                            .replace(/{{Name}}/g, 'Test User')
+                            .replace(/{{Email}}/g, testEmail);
+    
+    testMessage = testMessage.replace(/{{Name}}/g, 'Test User')
+                            .replace(/{{Section}}/g, 'TEST_SECTION')
+                            .replace(/{{Email}}/g, testEmail);
+    
+    // Replace dynamic placeholders with sample values
+    if (placeholdersData?.fieldMapping) {
+      Object.keys(placeholdersData.fieldMapping).forEach(key => {
+        const placeholder = `{{${placeholdersData.fieldMapping[key]}}}`;
+        const testValue = `TEST_${key.toUpperCase()}`;
+        testSubject = testSubject.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), testValue);
+        testMessage = testMessage.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), testValue);
+      });
+    }
 
     sendTestMutation.mutate({
       testEmail,
@@ -161,7 +186,8 @@ Placement Cell`);
     return students?.filter((s: any) => s.section === section).length || 0;
   };
 
-  const placeholders = ["{{Name}}", "{{Section}}", "{{Email}}"];
+  // Use dynamic placeholders from API, with fallback to default ones
+  const placeholders = placeholdersData?.availableFields?.map((field: string) => `{{${field}}}`) || ["{{Name}}", "{{Section}}", "{{Email}}"];
 
   if (!campaignId) {
     return <NoCampaignSelected action="compose" />;
@@ -285,17 +311,47 @@ Placement Cell`);
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h3 className="font-semibold mb-2">Subject:</h3>
                   <p className="text-sm bg-white p-2 rounded border">
-                    {subject.replace('{{Section}}', selectedSection === 'all' ? 'ALL_SECTIONS' : selectedSection)
-                           .replace('{{Name}}', 'John Doe')
-                           .replace('{{Email}}', 'john.doe@example.com')}
+                    {(() => {
+                      let previewSubject = subject;
+                      // Replace standard placeholders
+                      previewSubject = previewSubject.replace(/{{Section}}/g, selectedSection === 'all' ? 'ALL_SECTIONS' : selectedSection)
+                                                   .replace(/{{Name}}/g, 'John Doe')
+                                                   .replace(/{{Email}}/g, 'john.doe@example.com');
+                      
+                      // Replace dynamic placeholders with sample values
+                      if (placeholdersData?.fieldMapping) {
+                        Object.keys(placeholdersData.fieldMapping).forEach(key => {
+                          const placeholder = `{{${placeholdersData.fieldMapping[key]}}}`;
+                          const sampleValue = key === 'cgpa' ? '3.8' : `SAMPLE_${key.toUpperCase()}`;
+                          previewSubject = previewSubject.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), sampleValue);
+                        });
+                      }
+                      
+                      return previewSubject;
+                    })()}
                   </p>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h3 className="font-semibold mb-2">Message:</h3>
                   <div className="bg-white p-4 rounded border text-sm whitespace-pre-wrap">
-                    {message.replace(/{{Name}}/g, 'John Doe')
-                           .replace(/{{Section}}/g, selectedSection === 'all' ? 'ALL_SECTIONS' : selectedSection)
-                           .replace(/{{Email}}/g, 'john.doe@example.com')}
+                    {(() => {
+                      let previewMessage = message;
+                      // Replace standard placeholders
+                      previewMessage = previewMessage.replace(/{{Name}}/g, 'John Doe')
+                                                   .replace(/{{Section}}/g, selectedSection === 'all' ? 'ALL_SECTIONS' : selectedSection)
+                                                   .replace(/{{Email}}/g, 'john.doe@example.com');
+                      
+                      // Replace dynamic placeholders with sample values
+                      if (placeholdersData?.fieldMapping) {
+                        Object.keys(placeholdersData.fieldMapping).forEach(key => {
+                          const placeholder = `{{${placeholdersData.fieldMapping[key]}}}`;
+                          const sampleValue = key === 'cgpa' ? '3.8' : `SAMPLE_${key.toUpperCase()}`;
+                          previewMessage = previewMessage.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), sampleValue);
+                        });
+                      }
+                      
+                      return previewMessage;
+                    })()}
                   </div>
                 </div>
                 <div className="bg-blue-50 p-3 rounded-lg">
