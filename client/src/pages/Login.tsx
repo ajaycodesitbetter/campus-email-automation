@@ -53,17 +53,17 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <Card className="w-full max-w-md shadow-2xl border-0">
+    <div className="min-h-screen flex items-center justify-center fw-login">
+      <Card className="w-full max-w-md fw-login-card">
         <CardHeader className="text-center pb-2">
-          <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+          <div className="mx-auto mb-4 w-16 h-16 bg-primary rounded-full flex items-center justify-center">
             <Shield className="w-8 h-8 text-white" />
           </div>
           <CardTitle className="text-2xl font-bold text-gray-900">
-            Campus Email Automation
+            Welcome to Campus Mail
           </CardTitle>
           <p className="text-gray-600 text-sm">
-            Admin Access Required
+            Your campaigns. Your people. Your workspace.
           </p>
         </CardHeader>
         <CardContent>
@@ -79,7 +79,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter username"
+                  placeholder="Enter username" autoComplete="username"
                   className="pl-10"
                   disabled={loginMutation.isPending}
                 />
@@ -97,7 +97,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
+                  placeholder="Enter password" autoComplete="current-password"
                   className="pl-10"
                   disabled={loginMutation.isPending}
                 />
@@ -106,7 +106,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-2 px-4 rounded-md transition-all duration-200"
+              className="w-full bg-primary hover:opacity-90 text-white font-medium py-2 px-4 rounded-md transition-all duration-200"
               disabled={loginMutation.isPending}
             >
               {loginMutation.isPending ? "Signing in..." : "Sign In"}

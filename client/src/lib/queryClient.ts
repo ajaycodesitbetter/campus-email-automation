@@ -19,6 +19,7 @@ export async function apiRequest(
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
+    signal: AbortSignal.timeout(60000),
   });
 
   await throwIfResNotOk(res);
@@ -34,6 +35,7 @@ export const getQueryFn: <T>(options: {
     const fullUrl = getApiUrl(queryKey[0] as string);
     const res = await fetch(fullUrl, {
       credentials: "include",
+      signal: AbortSignal.timeout(15000),
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

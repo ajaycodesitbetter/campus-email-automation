@@ -17,7 +17,7 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [senderEmail, setSenderEmail] = useState("");
   const [senderPassword, setSenderPassword] = useState("");
-  const [dailyLimit, setDailyLimit] = useState(1500);
+  const [dailyLimit, setDailyLimit] = useState(150);
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -112,7 +112,7 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
   const handleEdit = () => {
     if (config) {
       setSenderEmail((config as any)?.senderEmail || '');
-      setDailyLimit((config as any)?.dailyLimit || 1500);
+      setDailyLimit((config as any)?.dailyLimit || 150);
       setSenderPassword(''); // Don't prefill password for security
     }
     setIsEditing(true);
@@ -137,21 +137,21 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
     );
   }
 
-  const usagePercentage = config ? Math.round((((config as any)?.usedToday || 0) / ((config as any)?.dailyLimit || 1500)) * 100) : 0;
+  const usagePercentage = config ? Math.round((((config as any)?.usedToday || 0) / ((config as any)?.dailyLimit || 150)) * 100) : 0;
 
   return (
     <Card className="shadow-sm border">
       <CardHeader className="border-b border-gray-200">
         <CardTitle className="flex items-center text-lg font-semibold text-gray-900">
           <Mail className="mr-2 text-primary h-5 w-5" />
-          Gmail Configuration
+          Your sending account
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-6">
+      <CardContent className="p-6"><p className="fw-smtp-note">Existing connection: Gmail SMTP with an app password. This is not Google OAuth. Keep your regular Google password private.</p>
         {isEditing ? (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="email">Gmail Address</Label>
+              <Label htmlFor="email">Gmail sender address</Label>
               <Input
                 id="email"
                 type="email"
@@ -167,12 +167,12 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
                 type="password"
                 value={senderPassword}
                 onChange={(e) => setSenderPassword(e.target.value)}
-                placeholder={config && (config as any)?.configured ? "Leave blank to keep existing password" : "Enter Gmail App Password"}
+                placeholder={config && (config as any)?.configured ? "Leave blank to keep existing password" : "Enter Gmail app password (not your account password)"}
               />
               <p className="text-xs text-gray-500 mt-1">
                 {config && (config as any)?.configured 
                   ? "Leave blank to keep existing password" 
-                  : "Use Gmail App Password, not your regular password"}
+                  : "Use Gmail app password (not your account password), not your regular password"}
               </p>
             </div>
             <div>
@@ -181,7 +181,7 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
                 id="limit"
                 type="number"
                 value={dailyLimit}
-                onChange={(e) => setDailyLimit(parseInt(e.target.value) || 1500)}
+                onChange={(e) => setDailyLimit(parseInt(e.target.value) || 150)}
                 min="1"
                 max="10000"
               />
@@ -211,7 +211,7 @@ export default function GmailConfig({ expanded = false }: GmailConfigProps) {
                   {(config as any)?.senderEmail || 'Not configured'}
                 </p>
                 <p className="text-sm text-gray-500">
-                  {(config as any)?.configured ? 'Connected via App Password' : 'Not connected'}
+                  {(config as any)?.configured ? 'SMTP app password saved' : 'Not connected'}
                 </p>
               </div>
               <div className={`w-3 h-3 rounded-full ${(config as any)?.configured ? 'bg-green-500' : 'bg-red-500'}`}></div>

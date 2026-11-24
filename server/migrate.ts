@@ -87,7 +87,7 @@ async function createTables() {
         id SERIAL PRIMARY KEY,
         sender_email VARCHAR(255) NOT NULL,
         app_password TEXT NOT NULL,
-        daily_limit INTEGER DEFAULT 1500,
+        daily_limit INTEGER DEFAULT 150,
         used_today INTEGER DEFAULT 0,
         last_reset_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -29,26 +29,26 @@ export default function FileUpload({ campaignId }: FileUploadProps) {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('campaignId', campaignId.toString());
-      
+
       const response = await fetch(getApiUrl('/api/upload-csv'), {
         method: 'POST',
         body: formData,
         credentials: 'include',
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         console.error('Upload error response:', error);
-        
+
         // Handle detailed validation errors
         if (error.details && error.details.errors && error.details.errors.length > 0) {
           const errorList = error.details.errors.slice(0, 3).join('; ');
           throw new Error(`Validation failed: ${errorList}${error.details.errors.length > 3 ? '...' : ''}`);
         }
-        
+
         throw new Error(error.error || 'Upload failed');
       }
-      
+
       return response.json();
     },
     onSuccess: (data) => {
@@ -58,6 +58,7 @@ export default function FileUpload({ campaignId }: FileUploadProps) {
         description: `CSV processed successfully. ${data.recordCount} records imported.`,
       });
       setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       console.log('Invalidating queries after CSV upload...');
       queryClient.invalidateQueries({ queryKey: ["/api/students"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
@@ -89,13 +90,12 @@ export default function FileUpload({ campaignId }: FileUploadProps) {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0];
-      const isValidFile = droppedFile.type === 'text/csv' || 
+      const isValidFile = droppedFile.type === 'text/csv' ||
                         droppedFile.name.endsWith('.csv') ||
                         droppedFile.name.endsWith('.xlsx') ||
-                        droppedFile.name.endsWith('.xls') ||
                         droppedFile.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
                         droppedFile.type === 'application/vnd.ms-excel';
       if (isValidFile) {
@@ -118,6 +118,7 @@ export default function FileUpload({ campaignId }: FileUploadProps) {
 
   const handleUpload = () => {
     if (file) {
+      if (!window.confirm("Import this file? It replaces the contacts and mail logs in this campaign. Other campaigns are not changed.")) return;
       uploadMutation.mutate(file);
     }
   };
@@ -132,7 +133,7 @@ export default function FileUpload({ campaignId }: FileUploadProps) {
         <CardTitle className="flex items-center justify-between text-lg font-semibold text-gray-900">
           <div className="flex items-center">
             <Upload className="mr-2 text-primary h-5 w-5" />
-            Upload Student Data
+            Import your people
           </div>
           <Badge variant="secondary" className="bg-blue-100 text-blue-800">
             Campaign Upload
@@ -143,17 +144,21 @@ export default function FileUpload({ campaignId }: FileUploadProps) {
         <motion.div
           className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 cursor-pointer ${
             dragActive
-              ? "border-primary bg-blue-50 scale-102"
+              ? "border-primary bg-blue-50 "
               : "border-gray-300 hover:border-primary hover:bg-gray-50"
           }`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
+          role="button"
+          tabIndex={0}
+          aria-label="Choose CSV or Excel file"
+          onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInputRef.current?.click(); } }}
           onClick={() => fileInputRef.current?.click()}
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.99 }}
-          initial={{ opacity: 0, y: 20 }}
+
+
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
@@ -165,10 +170,10 @@ export default function FileUpload({ campaignId }: FileUploadProps) {
             transition={{ duration: 0.2 }}
           >
             <CloudUpload className={`text-4xl mb-4 h-16 w-16 mx-auto transition-colors duration-300 ${
-              dragActive ? "text-blue-500" : "text-gray-400"
+              dragActive ? "text-blue-500" : "text-gray-600"
             }`} />
           </motion.div>
-          
+
           <AnimatePresence mode="wait">
             {file ? (
               <motion.div
@@ -186,7 +191,7 @@ export default function FileUpload({ campaignId }: FileUploadProps) {
                   </p>
                   <CheckCircle2 className="h-5 w-5 text-green-600" />
                 </div>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-600">
                   Size: {(file.size / 1024).toFixed(1)} KB
                 </p>
                 <motion.div
@@ -214,26 +219,26 @@ export default function FileUpload({ campaignId }: FileUploadProps) {
                 <p className="text-lg font-medium text-gray-700 mb-2">
                   {dragActive ? "Release to upload" : "Drop your CSV or Excel file here"}
                 </p>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-sm text-gray-600 mb-4">
                   {dragActive ? "" : "or click to browse files"}
                 </p>
               </motion.div>
             )}
           </AnimatePresence>
-          
-          <motion.p 
+
+          <motion.p
             className="text-xs text-gray-400 mt-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
-            Supports: CSV, Excel (.xlsx, .xls) • Required columns: Name, Email, Section
+            Supports: CSV, Excel (.xlsx) • Required columns: Name, Email, Section
           </motion.p>
-          
+
           <input
             ref={fileInputRef}
             type="file"
-            accept=".csv,.xlsx,.xls"
+            accept=".csv,.xlsx"
             onChange={handleFileSelect}
             className="hidden"
           />

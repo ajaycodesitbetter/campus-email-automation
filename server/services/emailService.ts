@@ -113,6 +113,8 @@ interface QueueItem {
  * Enhanced Email Service with queue system, rate limiting, and retry logic
  */
 export class EmailService {
+  private accountingBlocked = false;
+  private sendTail: Promise<unknown> = Promise.resolve();
   private transporter: nodemailer.Transporter | null = null;
   private queue: QueueItem[] = [];
   private isProcessing: boolean = false;
@@ -146,10 +148,10 @@ export class EmailService {
       },
       // Add rate limiting to avoid Gmail throttling
       pool: true, // Use connection pool
-      maxConnections: 5,
+      maxConnections: 1,
       maxMessages: 100, // max messages per connection
       rateDelta: 1000, // milliseconds between messages
-      rateLimit: 5, // max messages per rateDelta
+      rateLimit: 1, // max messages per rateDelta
     });
 
     // Verify connection
@@ -174,12 +176,19 @@ export class EmailService {
    * @returns Result of the send operation
    * @throws Error if daily limit is reached or if sending fails after max retries
    */
-  async sendEmail(
+  async sendEmail(emailData: EmailData, retryCount = 0, initialDelay = 2000): Promise<EmailSendResult> {
+    const operation = this.sendTail.then(() => this.sendEmailAttempt(emailData, retryCount, initialDelay));
+    this.sendTail = operation.catch(() => undefined);
+    return operation;
+  }
+
+  private async sendEmailAttempt(
     emailData: EmailData, 
     retryCount: number = 0, 
     initialDelay: number = 2000
   ): Promise<EmailSendResult> {
     try {
+      if (this.accountingBlocked) return { success: false, error: "Sending paused because usage accounting failed. Restart only after reconciling the accepted message." };
       if (!this.transporter) {
         this.logger('Email service not initialized, initializing now...', 'info');
         await this.initialize();
@@ -195,9 +204,11 @@ export class EmailService {
       }
 
       // Check daily limit
-      if ((config.usedToday || 0) >= (config.dailyLimit || 1500)) {
+      if ((config.usedToday || 0) >= (config.dailyLimit ?? 150)) {
         throw new Error("Daily email limit reached");
       }
+
+      if (/\{\{[^}]+\}\}/.test(emailData.subject + emailData.text)) return {success:false,error:"Unfilled custom variables remain. Review the contact fields before sending."};
 
       // Prepare email options
       const mailOptions: nodemailer.SendMailOptions = {
@@ -218,8 +229,15 @@ export class EmailService {
       this.logger(`Sending email to ${typeof emailData.to === 'string' ? emailData.to : emailData.to.join(', ')}`, 'info');
       const info = await this.transporter.sendMail(mailOptions);
 
+      if (info.rejected?.length) throw new Error("Mail server rejected one or more recipients");
+
       // Increment usage counter
-      await storage.incrementDailyUsage();
+      try { await storage.incrementDailyUsage(); } catch {
+        this.accountingBlocked = true;
+        this.transporter = null;
+        this.logger("Message accepted, but usage accounting failed. Check logs before another send.", "error");
+        return { success: true, messageId: info.messageId };
+      }
       
       this.logger(`Email sent successfully with message ID: ${info.messageId}`, 'info');
       
@@ -231,7 +249,7 @@ export class EmailService {
       const errorMessage = error instanceof Error ? error.message : String(error);
       
       // If we've reached the daily limit, don't retry
-      if (errorMessage.includes("Daily email limit reached")) {
+      if (errorMessage.includes("Daily email limit reached") || errorMessage.includes("rejected") || (error as {code?:string})?.code === "EAUTH" || ((error as {responseCode?:number})?.responseCode ?? 0) >= 500) {
         this.logger(`Failed to send email: ${errorMessage}`, 'error');
         return {
           success: false,
@@ -250,7 +268,7 @@ export class EmailService {
         await this.sleep(delay);
         
         // Recursive retry with incremented count
-        return this.sendEmail(emailData, retryCount + 1, initialDelay);
+        return this.sendEmailAttempt(emailData, retryCount + 1, initialDelay);
       }
       
       // Max retries exceeded

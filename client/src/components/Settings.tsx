@@ -40,7 +40,7 @@ export default function Settings({ open, onOpenChange }: SettingsProps) {
   const [emailConfig, setEmailConfig] = useState({
     senderEmail: "",
     senderPassword: "",
-    dailyLimit: 1500,
+    dailyLimit: 150,
     enableNotifications: true,
   });
 
@@ -83,7 +83,7 @@ export default function Settings({ open, onOpenChange }: SettingsProps) {
       setEmailConfig(prevConfig => ({
         ...prevConfig,
         senderEmail: configData.senderEmail || '',
-        dailyLimit: configData.dailyLimit || 1500,
+        dailyLimit: configData.dailyLimit || 150,
         // Keep password blank for security - user needs to re-enter if changing
         senderPassword: '',
         // Load notification setting from localStorage or use default
@@ -310,12 +310,12 @@ export default function Settings({ open, onOpenChange }: SettingsProps) {
                     id="limit"
                     type="number"
                     value={emailConfig.dailyLimit}
-                    onChange={(e) => setEmailConfig(prev => ({ ...prev, dailyLimit: parseInt(e.target.value) || 1500 }))}
+                    onChange={(e) => setEmailConfig(prev => ({ ...prev, dailyLimit: parseInt(e.target.value) || 150 }))}
                     min="1"
                     max="10000"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Recommended: 1500 emails per day for Gmail
+                    App cap only. Gmail account limits also apply. This setting does not increase them.
                   </p>
                 </div>
 
@@ -451,7 +451,7 @@ export default function Settings({ open, onOpenChange }: SettingsProps) {
                     className="w-full flex items-center gap-2"
                   >
                     <Download className="h-4 w-4" />
-                    Export Student Data
+                    Export Your people
                   </Button>
                 </div>
 
