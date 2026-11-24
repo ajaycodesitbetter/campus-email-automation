@@ -36,7 +36,7 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
         const params = new URLSearchParams();
         if (campaignId) params.append('campaignId', campaignId.toString());
         if (selectedSection !== 'all') params.append('section', selectedSection);
-        const response = await fetch(getApiUrl(`/api/students?${params}`));
+        const response = await fetch(getApiUrl(`/api/students?${params}`), { credentials: "include", signal: AbortSignal.timeout(15000) });
         if (!response.ok) {
           throw new Error(`Failed to fetch students: ${response.status}`);
         }
@@ -55,7 +55,7 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
     queryKey: ["/api/sections", campaignId],
     queryFn: () => {
       const params = campaignId ? `?campaignId=${campaignId}` : '';
-      return fetch(getApiUrl(`/api/sections${params}`)).then(res => res.json());
+      return fetch(getApiUrl(`/api/sections${params}`), { credentials: "include", signal: AbortSignal.timeout(15000) }).then(res => res.json());
     },
     enabled: !!campaignId,
   });
@@ -64,18 +64,17 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
     queryKey: ["/api/email-logs", campaignId],
     queryFn: () => {
       const params = campaignId ? `?campaignId=${campaignId}` : '';
-      return fetch(getApiUrl(`/api/email-logs${params}`)).then(res => res.json());
+      return fetch(getApiUrl(`/api/email-logs${params}`), { credentials: "include", signal: AbortSignal.timeout(15000) }).then(res => res.json());
     },
     enabled: !!campaignId,
   });
 
   const resendMutation = useMutation({
     mutationFn: async (studentId: number) => {
-      return apiRequest("POST", "/api/send-individual", {
-        studentId,
-        subject: "Resent Email - {{Section}}",
-        message: "This is a resent email for {{Name}} from {{Section}} section.",
-      });
+      const previous = emailLogs?.find((log: any) => log.studentId === studentId);
+      if (!previous) throw new Error("No previous email was found. Use the composer instead.");
+      if (!window.confirm(`Resend the previous message with subject "${previous.subject}" to ${previous.email}?`)) throw new Error("Resend cancelled");
+      return apiRequest("POST", "/api/send-individual", { studentId, subject: previous.subject, message: previous.message });
     },
     onSuccess: () => {
       toast({
@@ -281,7 +280,7 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
         <CardHeader>
           <CardTitle className="flex items-center text-lg font-semibold text-red-600">
             <AlertCircle className="mr-2 h-5 w-5" />
-            Error Loading Student Data
+            Error Loading Your people
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -457,6 +456,8 @@ export default function StudentTable({ campaignId }: StudentTableProps) {
                     <Button
                       variant="ghost"
                       size="sm"
+                      aria-label={`View latest email for ${student.name}`}
+                      onClick={() => { const log = emailLogs?.find((l:any) => l.studentId === student.id); window.alert(log ? `Subject: ${log.subject}\nStatus: ${log.status}\n\n${log.message}${log.errorMessage ? `\n\nError: ${log.errorMessage}` : ""}` : "No email has been sent to this person yet."); }}
                       className="text-gray-400 hover:text-gray-600"
                     >
                       <Eye className="h-4 w-4" />

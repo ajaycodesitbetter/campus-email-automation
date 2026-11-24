@@ -20,20 +20,8 @@ interface EmailComposerProps {
 }
 
 export default function EmailComposer({ campaignId }: EmailComposerProps) {
-  const [subject, setSubject] = useState("Important Placement Drive Information - {{Section}}");
-  const [message, setMessage] = useState(`Dear {{Name}},
-
-We are pleased to inform you about an upcoming placement drive for {{Section}} students. This is an excellent opportunity to connect with leading companies in your field.
-
-Event Details:
-- Date: January 25, 2024
-- Time: 10:00 AM onwards
-- Venue: Main Auditorium
-
-Please ensure you attend with your updated resume and formal attire.
-
-Best regards,
-Placement Cell`);
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
   const [selectedSection, setSelectedSection] = useState("all");
   const [testEmail, setTestEmail] = useState("");
   const [showTestDialog, setShowTestDialog] = useState(false);
@@ -46,7 +34,7 @@ Placement Cell`);
     queryKey: ["/api/sections", campaignId],
     queryFn: () => {
       const params = campaignId ? `?campaignId=${campaignId}` : '';
-      return fetch(getApiUrl(`/api/sections${params}`)).then(res => res.json());
+      return fetch(getApiUrl(`/api/sections${params}`), { credentials: "include", signal: AbortSignal.timeout(15000) }).then(res => res.json());
     },
     enabled: !!campaignId,
   });
@@ -57,7 +45,7 @@ Placement Cell`);
       const params = new URLSearchParams();
       if (campaignId) params.append('campaignId', campaignId.toString());
       if (selectedSection !== 'all') params.append('section', selectedSection);
-      return fetch(getApiUrl(`/api/students?${params}`)).then(res => res.json());
+      return fetch(getApiUrl(`/api/students?${params}`), { credentials: "include", signal: AbortSignal.timeout(15000) }).then(res => res.json());
     },
     enabled: !!campaignId,
   });
@@ -67,7 +55,7 @@ Placement Cell`);
     queryKey: ["/api/placeholders", campaignId],
     queryFn: () => {
       const params = campaignId ? `?campaignId=${campaignId}` : '';
-      return fetch(getApiUrl(`/api/placeholders${params}`)).then(res => res.json());
+      return fetch(getApiUrl(`/api/placeholders${params}`), { credentials: "include", signal: AbortSignal.timeout(15000) }).then(res => res.json());
     },
     enabled: !!campaignId,
   });
@@ -115,8 +103,8 @@ Placement Cell`);
     },
     onError: (error: any) => {
       toast({
-        title: "Send Failed",
-        description: error.message,
+        title: "Send status needs checking",
+        description: "Review the mail report before retrying. " + error.message,
         variant: "destructive",
       });
     },
@@ -172,6 +160,7 @@ Placement Cell`);
       return;
     }
 
+    if (!window.confirm(`Send this email to ${getSectionCount(selectedSection)} people in this campaign? Review your subject, message, and variables before continuing.`)) return;
     sendBulkMutation.mutate({
       subject,
       message,
@@ -200,7 +189,7 @@ Placement Cell`);
         <CardTitle className="flex items-center justify-between text-lg font-semibold text-gray-900">
           <div className="flex items-center">
             <Edit className="mr-2 text-primary h-5 w-5" />
-            Email Composer
+            Write your email
           </div>
           <Badge variant="secondary" className="bg-green-100 text-green-800">
             Campaign Email
@@ -271,10 +260,10 @@ Placement Cell`);
           </p>
           <div className="flex flex-wrap gap-2">
             {placeholders.map((placeholder: string) => (
-              <Badge
+              <button
+                type="button"
                 key={placeholder}
-                variant="secondary"
-                className="bg-blue-100 text-blue-800 font-mono cursor-pointer"
+                className="px-2 py-1 rounded bg-blue-100 text-blue-800 font-mono cursor-pointer"
                 onClick={() => {
                   // Insert placeholder at cursor position
                   const textarea = document.querySelector('textarea');
@@ -287,7 +276,7 @@ Placement Cell`);
                 }}
               >
                 {placeholder}
-              </Badge>
+              </button>
             ))}
           </div>
         </div>

@@ -219,7 +219,7 @@ export default function RecentActivity({ selectedCampaign }: RecentActivityProps
             className="w-full bg-gray-50 hover:bg-gray-100 text-gray-700 p-3 text-left justify-start"
             onClick={async () => {
               try {
-                const response = await fetch(getApiUrl("/api/export-logs"));
+                const response = await fetch(getApiUrl("/api/export-logs"), { credentials: "include", signal: AbortSignal.timeout(15000) });
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -251,7 +251,7 @@ export default function RecentActivity({ selectedCampaign }: RecentActivityProps
             className="w-full bg-gray-50 hover:bg-gray-100 text-gray-700 p-3 text-left justify-start"
             onClick={async () => {
               try {
-                const response = await fetch(getApiUrl("/api/validate-emails"));
+                const response = await fetch(getApiUrl("/api/validate-emails"), { credentials: "include", signal: AbortSignal.timeout(15000) });
                 const result = await response.json();
                 
                 if (response.ok) {

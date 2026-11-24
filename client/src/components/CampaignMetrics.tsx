@@ -12,7 +12,7 @@ interface CampaignMetricsProps {
 export default function CampaignMetrics({ campaignId }: CampaignMetricsProps) {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["/api/campaign-stats", campaignId],
-    queryFn: () => fetch(getApiUrl(`/api/campaigns/${campaignId}/stats`)).then(res => res.json()),
+    queryFn: () => fetch(getApiUrl(`/api/campaigns/${campaignId}/stats`), { credentials: "include", signal: AbortSignal.timeout(15000) }).then(res => res.json()),
   });
 
   if (isLoading) {
@@ -43,7 +43,7 @@ export default function CampaignMetrics({ campaignId }: CampaignMetricsProps) {
       <CardHeader className="border-b border-gray-200">
         <CardTitle className="flex items-center text-lg font-semibold text-gray-900">
           <BarChart3 className="mr-2 text-primary h-5 w-5" />
-          Campaign Metrics
+          Campaign report
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
@@ -66,7 +66,7 @@ export default function CampaignMetrics({ campaignId }: CampaignMetricsProps) {
 
         <div className="mb-4">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-700">Success Rate</span>
+            <span className="text-sm font-medium text-gray-700">Sent / contacts</span>
             <span className="text-sm text-gray-600">{successRate}%</span>
           </div>
           <Progress value={successRate} className="h-2" />
@@ -86,9 +86,9 @@ export default function CampaignMetrics({ campaignId }: CampaignMetricsProps) {
             </Badge>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Pending</span>
+            <span className="text-sm text-gray-600">Queued</span>
             <Badge className="bg-yellow-100 text-yellow-800">
-              {stats?.emailsPending || 0}
+              {stats?.emailsQueued || 0}
             </Badge>
           </div>
         </div>

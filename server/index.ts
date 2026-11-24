@@ -3,6 +3,7 @@ import "dotenv/config";
 
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { pool } from "./db";
@@ -18,6 +19,7 @@ const log = console.log;
 process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
 const app = express();
+app.set("trust proxy", 1);
 
 // CORS configuration for frontend communication
 app.use((req, res, next) => {
@@ -28,8 +30,9 @@ app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin && allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
-  } else if (!origin) {
-    res.header('Access-Control-Allow-Origin', '*');
+  }
+  if (origin && !allowedOrigins.includes(origin) && !['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    return res.status(403).json({error: 'Request origin is not allowed'});
   }
   
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -103,16 +106,18 @@ app.use('/api/send-individual', emailLimiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false }));
 
-// Session configuration for authentication
+// Persist sessions across app restarts, using the existing application database.
+const PgSession = connectPgSimple(session);
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'campus-email-session-secret-2025',
+  store: new PgSession({ pool, createTableIfMissing: true }),
+  secret: process.env.SESSION_SECRET || (process.env.NODE_ENV === 'production' ? (() => { throw new Error('SESSION_SECRET is required in production'); })() : 'local-development-only-change-me'),
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // Disable secure for now to fix cross-origin issues
-    httpOnly: false, // Allow client-side access for debugging
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'none' // Allow cross-origin cookies
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
   }
 }));
 
@@ -131,9 +136,7 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
+
 
       if (logLine.length > 80) {
         logLine = logLine.slice(0, 79) + "…";

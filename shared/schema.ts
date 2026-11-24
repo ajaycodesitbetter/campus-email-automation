@@ -39,7 +39,7 @@ export const emailConfig = pgTable("email_config", {
   id: serial("id").primaryKey(),
   senderEmail: text("sender_email").notNull(),
   senderPassword: text("sender_password").notNull(),
-  dailyLimit: integer("daily_limit").default(1500),
+  dailyLimit: integer("daily_limit").default(150),
   usedToday: integer("used_today").default(0),
   lastResetDate: timestamp("last_reset_date").defaultNow(),
 });
@@ -75,6 +75,8 @@ export const insertEmailConfigSchema = createInsertSchema(emailConfig).omit({
 
 // Update schema that makes password optional
 export const updateEmailConfigSchema = insertEmailConfigSchema.extend({
+  senderEmail: z.string().email(),
+  dailyLimit: z.number().int().min(1).max(10000),
   senderPassword: z.string().optional(),
 });
 

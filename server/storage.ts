@@ -1,6 +1,6 @@
 import { campaigns, students, emailLogs, emailConfig, activityLogs, type Campaign, type InsertCampaign, type Student, type InsertStudent, type EmailLog, type InsertEmailLog, type EmailConfig, type InsertEmailConfig, type ActivityLog, type InsertActivityLog } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Campaigns
@@ -8,31 +8,32 @@ export interface IStorage {
   getCampaignById(id: number): Promise<Campaign | undefined>;
   createCampaign(campaign: InsertCampaign): Promise<Campaign>;
   deleteCampaign(id: number): Promise<void>;
-  
+
   // Students
   getStudents(campaignId?: number): Promise<Student[]>;
   getStudentsBySection(section: string, campaignId?: number): Promise<Student[]>;
   getStudentById(id: number): Promise<Student | undefined>;
   createStudent(student: InsertStudent): Promise<Student>;
   createStudents(students: InsertStudent[]): Promise<Student[]>;
+  replaceCampaignStudents(campaignId: number, students: InsertStudent[]): Promise<Student[]>;
   deleteAllStudents(campaignId?: number): Promise<void>;
-  
+
   // Email Logs
   getEmailLogs(campaignId?: number): Promise<EmailLog[]>;
   getEmailLogsByStudent(studentId: number): Promise<EmailLog[]>;
   createEmailLog(log: InsertEmailLog): Promise<EmailLog>;
   updateEmailLogStatus(id: number, status: string, errorMessage?: string): Promise<void>;
-  
+
   // Email Config
   getEmailConfig(): Promise<EmailConfig | undefined>;
   createOrUpdateEmailConfig(config: InsertEmailConfig): Promise<EmailConfig>;
   incrementDailyUsage(): Promise<void>;
   resetDailyUsage(): Promise<void>;
-  
+
   // Activity Logs
   getActivityLogs(limit?: number): Promise<ActivityLog[]>;
   createActivityLog(log: InsertActivityLog): Promise<ActivityLog>;
-  
+
   // Stats
   getStats(campaignId?: number): Promise<{
     totalStudents: number;
@@ -112,6 +113,15 @@ export class DatabaseStorage implements IStorage {
       .returning();
   }
 
+  async replaceCampaignStudents(campaignId: number, records: InsertStudent[]): Promise<Student[]> {
+    return db.transaction(async tx => {
+      await tx.delete(emailLogs).where(eq(emailLogs.campaignId, campaignId));
+      await tx.delete(students).where(eq(students.campaignId, campaignId));
+      if (!records.length) return [];
+      return tx.insert(students).values(records).returning();
+    });
+  }
+
   async deleteAllStudents(campaignId?: number): Promise<void> {
     if (campaignId) {
       await db.delete(emailLogs).where(eq(emailLogs.campaignId, campaignId));
@@ -144,44 +154,44 @@ export class DatabaseStorage implements IStorage {
   async updateEmailLogStatus(id: number, status: string, errorMessage?: string): Promise<void> {
     await db
       .update(emailLogs)
-      .set({ 
-        status, 
-        errorMessage: errorMessage ?? null 
+      .set({
+        status,
+        errorMessage: errorMessage ?? null
       })
       .where(eq(emailLogs.id, id));
   }
 
   async getEmailConfig(): Promise<EmailConfig | undefined> {
     const [config] = await db.select().from(emailConfig).limit(1);
-    
+
     if (config && config.lastResetDate) {
       // Check if we need to reset daily usage (new day)
       const today = new Date().toDateString();
       const lastResetDate = new Date(config.lastResetDate).toDateString();
-      
+
       if (today !== lastResetDate) {
         console.log(`🔄 Daily reset needed: Last reset ${lastResetDate}, Today is ${today}`);
         // Reset directly without calling this.resetDailyUsage() to avoid recursion
         await db
           .update(emailConfig)
-          .set({ 
+          .set({
             usedToday: 0,
             lastResetDate: new Date()
           })
           .where(eq(emailConfig.id, config.id));
-        
+
         // Fetch the updated config after reset
         const [updatedConfig] = await db.select().from(emailConfig).limit(1);
         return updatedConfig || undefined;
       }
     }
-    
+
     return config || undefined;
   }
 
   async createOrUpdateEmailConfig(insertConfig: InsertEmailConfig): Promise<EmailConfig> {
     const existing = await this.getEmailConfig();
-    
+
     if (existing) {
       const [updated] = await db
         .update(emailConfig)
@@ -203,8 +213,8 @@ export class DatabaseStorage implements IStorage {
     if (config) {
       await db
         .update(emailConfig)
-        .set({ 
-          usedToday: (config.usedToday || 0) + 1 
+        .set({
+          usedToday: sql`COALESCE(${emailConfig.usedToday}, 0) + 1`
         })
         .where(eq(emailConfig.id, config.id));
     }
@@ -215,7 +225,7 @@ export class DatabaseStorage implements IStorage {
     if (config) {
       await db
         .update(emailConfig)
-        .set({ 
+        .set({
           usedToday: 0,
           lastResetDate: new Date()
         })
@@ -243,7 +253,7 @@ export class DatabaseStorage implements IStorage {
   }> {
     const allStudents = await this.getStudents(campaignId);
     const logs = await this.getEmailLogs(campaignId);
-    
+
     return {
       totalStudents: allStudents.length,
       emailsSent: logs.filter(l => l.status === 'sent').length,
@@ -262,7 +272,7 @@ export class DatabaseStorage implements IStorage {
     const stats = await this.getStats(campaignId);
     const campaignStudents = await this.getStudents(campaignId);
     const sections = Array.from(new Set(campaignStudents.map(s => s.section)));
-    
+
     return {
       ...stats,
       sections,

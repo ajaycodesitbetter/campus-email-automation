@@ -1,246 +1,159 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, MessageSquare } from "lucide-react";
+import { Plus, Trash2, ArrowUpRight, Layers, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-
+import { useToast } from "@/hooks/use-toast";
 interface Campaign {
   id: number;
   name: string;
   description: string;
-  emoji: string;
-  createdAt: string;
 }
-
-interface CampaignSidebarProps {
+export default function CampaignSidebar({
+  selectedCampaign,
+  onSelectCampaign,
+}: {
   selectedCampaign: number | null;
-  onSelectCampaign: (campaignId: number | null) => void;
-}
-
-export default function CampaignSidebar({ selectedCampaign, onSelectCampaign }: CampaignSidebarProps) {
-  const [showNewCampaign, setShowNewCampaign] = useState(false);
-  const [newCampaignName, setNewCampaignName] = useState("");
-  const [newCampaignEmoji, setNewCampaignEmoji] = useState("📧");
-  
-  const queryClient = useQueryClient();
+  onSelectCampaign: (id: number | null) => void;
+}) {
+  const [creating, setCreating] = useState(false);
+  const [name, setName] = useState("");
+  const qc = useQueryClient();
   const { toast } = useToast();
-
-  const { data: campaigns, isLoading } = useQuery({
-    queryKey: ["/api/campaigns"],
-  });
-
-  const createCampaignMutation = useMutation({
-    mutationFn: async (data: { name: string; emoji: string; description?: string }) => {
-      const response = await apiRequest("POST", "/api/campaigns", data);
-      return response.json();
+  const {
+    data: campaigns = [],
+    isPending,
+    error,
+  } = useQuery<Campaign[]>({ queryKey: ["/api/campaigns"] });
+  const create = useMutation({
+    mutationFn: async () =>
+      (
+        await apiRequest("POST", "/api/campaigns", {
+          name: name.trim(),
+          emoji: "",
+          description: "",
+        })
+      ).json(),
+    onSuccess: (campaign) => {
+      qc.invalidateQueries({ queryKey: ["/api/campaigns"] });
+      onSelectCampaign(campaign.id);
+      setCreating(false);
+      setName("");
     },
-    onSuccess: () => {
+    onError: (e) =>
       toast({
-        title: "Success",
-        description: "Campaign created successfully!",
-      });
-      setShowNewCampaign(false);
-      setNewCampaignName("");
-      setNewCampaignEmoji("📧");
-      queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to create campaign",
-        description: error.message,
+        title: "Could not create campaign",
+        description: e.message,
         variant: "destructive",
-      });
-    },
+      }),
   });
-
-  const deleteCampaignMutation = useMutation({
-    mutationFn: async (campaignId: number) => {
-      return apiRequest("DELETE", `/api/campaigns/${campaignId}`, {});
-    },
+  const remove = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/campaigns/${id}`),
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Campaign deleted successfully!",
-      });
       onSelectCampaign(null);
-      queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
+      qc.invalidateQueries();
     },
-    onError: (error: any) => {
+    onError: (e) =>
       toast({
-        title: "Failed to delete campaign",
-        description: error.message,
+        title: "Could not delete campaign",
+        description: e.message,
         variant: "destructive",
-      });
-    },
+      }),
   });
-
-  const handleCreateCampaign = () => {
-    if (!newCampaignName.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Campaign name is required.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    createCampaignMutation.mutate({
-      name: newCampaignName.trim(),
-      emoji: newCampaignEmoji,
-      description: `Email campaign for ${newCampaignName.trim()}`,
-    });
-  };
-
-  const emojiOptions = ["📧", "🎓", "🎉", "📝", "💼", "🏆", "📚", "🎯", "✨", "🚀"];
-
-  if (isLoading) {
-    return (
-      <div className="w-80 bg-white border-r border-gray-200 p-4">
-        <div className="animate-pulse space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-16 bg-gray-200 rounded-lg"></div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="w-80 bg-white border-r border-gray-200 p-4 overflow-y-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-          <MessageSquare className="mr-2 h-5 w-5 text-primary" />
-          Campaigns
-        </h2>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowNewCampaign(!showNewCampaign)}
-          className="p-2"
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
+    <aside className="fw-sidebar">
+      <div className="fw-sidebar-title">
+        <span>Your workspace</span>
+        <span>{campaigns.length.toString().padStart(2, "0")}</span>
       </div>
-
-      {/* Global View Option */}
-      <Card 
-        className={`mb-4 cursor-pointer transition-all ${
-          selectedCampaign === null 
-            ? 'ring-2 ring-primary bg-blue-50' 
-            : 'hover:bg-gray-50'
-        }`}
+      <button className="fw-new" onClick={() => setCreating(!creating)}>
+        <Plus size={17} /> New campaign
+      </button>
+      {creating && (
+        <form
+          className="fw-create"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (name.trim()) create.mutate();
+          }}
+        >
+          <label htmlFor="campaign-name">Campaign name</label>
+          <input
+            id="campaign-name"
+            value={name}
+            maxLength={100}
+            autoFocus
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Placement updates"
+            required
+          />
+          <div>
+            <button type="submit" disabled={create.isPending}>
+              {create.isPending ? "Creating..." : "Create campaign"}
+            </button>
+            <button
+              type="button"
+              aria-label="Cancel new campaign"
+              onClick={() => setCreating(false)}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </form>
+      )}
+      <button
+        className={`fw-campaign ${selectedCampaign === null ? "is-selected" : ""}`}
         onClick={() => onSelectCampaign(null)}
       >
-        <CardContent className="p-4">
-          <div className="flex items-center">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white text-lg font-bold">
-              📊
-            </div>
-            <div className="ml-3">
-              <h3 className="font-medium text-gray-900">All Campaigns</h3>
-              <p className="text-sm text-gray-500">Global overview</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* New Campaign Form */}
-      {showNewCampaign && (
-        <Card className="mb-4 border-2 border-dashed border-primary">
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <select
-                  value={newCampaignEmoji}
-                  onChange={(e) => setNewCampaignEmoji(e.target.value)}
-                  className="text-lg p-1 border rounded"
-                >
-                  {emojiOptions.map(emoji => (
-                    <option key={emoji} value={emoji}>{emoji}</option>
-                  ))}
-                </select>
-                <Input
-                  placeholder="Campaign name"
-                  value={newCampaignName}
-                  onChange={(e) => setNewCampaignName(e.target.value)}
-                  className="flex-1"
-                />
-              </div>
-              <div className="flex space-x-2">
-                <Button
-                  onClick={handleCreateCampaign}
-                  disabled={createCampaignMutation.isPending}
-                  size="sm"
-                  className="flex-1"
-                >
-                  {createCampaignMutation.isPending ? "Creating..." : "Create"}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowNewCampaign(false)}
-                  size="sm"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <Layers size={17} />
+        <span>
+          All campaigns<small>The whole picture</small>
+        </span>
+      </button>
+      <div className="fw-sidebar-title fw-list-title">Campaigns</div>
+      {isPending && <p className="fw-muted">Loading campaigns...</p>}
+      {error && <p role="alert">Campaigns could not load. Try Refresh.</p>}
+      {!isPending && !error && !campaigns.length && (
+        <p className="fw-muted">
+          Your first campaign starts here. Create one above.
+        </p>
       )}
-
-      {/* Campaign List */}
-      <div className="space-y-3">
-        {((campaigns as Campaign[]) || []).map((campaign: Campaign) => (
-          <Card 
-            key={campaign.id}
-            className={`cursor-pointer transition-all ${
-              selectedCampaign === campaign.id 
-                ? 'ring-2 ring-primary bg-blue-50' 
-                : 'hover:bg-gray-50'
-            }`}
-            onClick={() => onSelectCampaign(campaign.id)}
+      {campaigns.map((c, i) => (
+        <div className="fw-campaign-row" key={c.id}>
+          <button
+            className={`fw-campaign ${selectedCampaign === c.id ? "is-selected" : ""}`}
+            onClick={() => onSelectCampaign(c.id)}
           >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-lg">
-                    {campaign.emoji}
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="font-medium text-gray-900">{campaign.name}</h3>
-                    <p className="text-sm text-gray-500">
-                      {new Date(campaign.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteCampaignMutation.mutate(campaign.id);
-                  }}
-                  className="text-red-500 hover:text-red-700 p-1"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {((campaigns as Campaign[]) || []).length === 0 && !showNewCampaign && (
-        <div className="text-center py-8 text-gray-500">
-          <MessageSquare className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-          <p className="text-sm">No campaigns yet</p>
-          <p className="text-xs">Create your first campaign to get started</p>
+            <span className="fw-index">{String(i + 1).padStart(2, "0")}</span>
+            <span>
+              {c.name}
+              <small>Campaign workspace</small>
+            </span>
+          </button>
+          <button
+            className="fw-delete"
+            aria-label={`Delete ${c.name}`}
+            disabled={remove.isPending}
+            onClick={() => {
+              if (
+                window.confirm(
+                  `Delete "${c.name}" and its contacts and reports? This cannot be undone.`,
+                )
+              )
+                remove.mutate(c.id);
+            }}
+          >
+            <Trash2 size={14} />
+          </button>
         </div>
-      )}
-    </div>
+      ))}
+      <div className="fw-sidebar-note">
+        <ArrowUpRight size={21} />
+        <strong>One row. One person.</strong>
+        <p>
+          Import your list, add personal details, then review before sending.
+        </p>
+        <span>CSV + Excel supported</span>
+      </div>
+    </aside>
   );
 }

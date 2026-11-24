@@ -46,3 +46,7 @@ Thumbs.db
 .replit
 replit.nix
 package.json.backup
+
+# Local test artifacts
+tests/.*-run.mjs
+*.tsbuildinfo

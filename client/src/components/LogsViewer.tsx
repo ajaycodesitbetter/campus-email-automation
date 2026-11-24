@@ -24,19 +24,20 @@ export default function LogsViewer({ open, onOpenChange }: LogsViewerProps) {
 
   const { data: emailLogs, isLoading: emailLogsLoading } = useQuery({
     queryKey: ["/api/email-logs"],
-    queryFn: () => fetch(getApiUrl("/api/email-logs")).then(res => res.json()),
+    queryFn: () => fetch(getApiUrl("/api/email-logs"), { credentials: "include", signal: AbortSignal.timeout(15000) }).then(res => res.json()),
     enabled: open,
   });
 
   const { data: activityLogs, isLoading: activityLogsLoading } = useQuery({
     queryKey: ["/api/activity-logs", 100],
-    queryFn: () => fetch(getApiUrl("/api/activity-logs?limit=100")).then(res => res.json()),
+    queryFn: () => fetch(getApiUrl("/api/activity-logs?limit=100"), { credentials: "include", signal: AbortSignal.timeout(15000) }).then(res => res.json()),
     enabled: open,
   });
 
   const handleExportLogs = async () => {
     try {
-      const response = await fetch(getApiUrl("/api/export-logs"));
+      const response = await fetch(getApiUrl("/api/export-logs"), { credentials: "include", signal: AbortSignal.timeout(15000) });
+      if (!response.ok) throw new Error("Could not export mail logs");
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -170,9 +171,9 @@ export default function LogsViewer({ open, onOpenChange }: LogsViewerProps) {
                             </div>
                             <p className="font-medium text-gray-900">{log.email}</p>
                             <p className="text-sm text-gray-600 mb-2">{log.subject}</p>
-                            {log.error && (
+                            {log.errorMessage && (
                               <p className="text-xs text-red-600 bg-red-50 p-2 rounded">
-                                Error: {log.error}
+                                Error: {log.errorMessage}
                               </p>
                             )}
                           </div>

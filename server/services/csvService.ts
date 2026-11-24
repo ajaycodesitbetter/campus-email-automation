@@ -94,7 +94,8 @@ export class CSVService {
       // Check file extension to determine format
       const fileExt = fileName.toLowerCase().split('.').pop();
       
-      if (fileExt === 'xlsx' || fileExt === 'xls') {
+      if (fileExt === 'xls') throw new Error('Legacy .xls files are not supported. Save as .xlsx or CSV first.');
+      if (fileExt === 'xlsx') {
         // Handle Excel files
         if (typeof fileContent === 'string') {
           throw new Error('Excel files must be processed as binary data');
@@ -158,6 +159,7 @@ export class CSVService {
         return result;
       }
 
+      if (parsed.data.length > 1000) { result.valid = false; result.errors.push("A maximum of 1,000 rows can be imported at once."); return result; }
       const headers = parsed.meta.fields || [];
       console.log('📋 Detected columns:', headers);
 

@@ -21,35 +21,13 @@ if (dbHost && dbUser && dbPassword && dbName) {
   // Use DATABASE_URL, but remove channel_binding parameter if present
   // as it can cause issues with Node.js pg driver
   connectionString = databaseUrl.replace('&channel_binding=require', '').replace('?channel_binding=require', '');
-  console.log('Using DATABASE_URL');
-  console.log('DATABASE_URL length:', databaseUrl.length);
-  console.log('DATABASE_URL first 50 chars:', databaseUrl.substring(0, 50));
-  console.log('Cleaned connection string first 50 chars:', connectionString.substring(0, 50));
   
-  // Extract hostname for debugging
-  try {
-    const url = new URL(connectionString);
-    console.log('Parsed hostname:', url.hostname);
-    console.log('Parsed port:', url.port);
-    console.log('Parsed database:', url.pathname);
-  } catch (e) {
-    console.error('Failed to parse DATABASE_URL:', e instanceof Error ? e.message : String(e));
-  }
 } else {
   throw new Error(
     "Either DATABASE_URL or all separate database variables (HOST, USER, PASSWORD, NAME) must be set."
   );
 }
 console.log('Connecting to database...');
-console.log('Final connection string for Pool:', connectionString);
-console.log('Connection string length:', connectionString.length);
-
-// Additional validation
-if (connectionString.includes('base')) {
-  console.error('❌ CONNECTION STRING CONTAINS "base" - THIS IS THE PROBLEM!');
-  console.error('Raw DATABASE_URL:', databaseUrl);
-  console.error('Processed connectionString:', connectionString);
-}
 
 export const pool = new Pool({ 
   connectionString,
@@ -126,7 +104,7 @@ async function createTablesIfNotExist() {
       id SERIAL PRIMARY KEY,
       sender_email VARCHAR(255) NOT NULL,
       sender_password TEXT NOT NULL,
-      daily_limit INTEGER DEFAULT 1500,
+      daily_limit INTEGER DEFAULT 150,
       used_today INTEGER DEFAULT 0,
       last_reset_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -200,14 +178,13 @@ async function createTablesIfNotExist() {
 
   // Create default admin user if none exists
   const adminCheck = await pool.query('SELECT COUNT(*) FROM admin_users');
-  if (parseInt(adminCheck.rows[0].count) === 0) {
-    // Default credentials: admin / admin123
-    // In production, change this immediately!
-    const defaultPasswordHash = await bcrypt.hash('admin123', 10);
+  if (parseInt(adminCheck.rows[0].count) === 0 && process.env.INITIAL_ADMIN_PASSWORD) {
+    // Bootstrap only when a password is supplied through secure environment configuration.
+    const defaultPasswordHash = await bcrypt.hash(process.env.INITIAL_ADMIN_PASSWORD!, 12);
     await pool.query(`
       INSERT INTO admin_users (username, password_hash, email)
       VALUES ('admin', $1, 'admin@campus-email.local')
     `, [defaultPasswordHash]);
-    console.log('✅ Default admin user created: admin / admin123 (CHANGE THIS!)');
+    console.log('Initial administrator created from secure environment configuration');
   }
 }

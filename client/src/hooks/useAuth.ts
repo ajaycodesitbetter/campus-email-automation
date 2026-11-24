@@ -8,7 +8,7 @@ export function useAuth() {
   const queryClient = useQueryClient();
 
   // Check authentication status
-  const { data: authStatus } = useQuery<{ authenticated: boolean }>({
+  const { data: authStatus, isPending, error, refetch } = useQuery<{ authenticated: boolean }>({
     queryKey: ["/api/auth-status"],
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: true,
@@ -29,7 +29,8 @@ export function useAuth() {
       setIsAuthenticated(authStatus.authenticated ?? false);
       setIsLoading(false);
     }
-  }, [authStatus]);
+    if (!isPending) setIsLoading(false);
+  }, [authStatus, isPending]);
 
   const login = () => {
     setIsAuthenticated(true);
@@ -43,6 +44,8 @@ export function useAuth() {
   return {
     isAuthenticated,
     isLoading,
+    error,
+    retry: refetch,
     login,
     logout,
     isLoggingOut: logoutMutation.isPending,

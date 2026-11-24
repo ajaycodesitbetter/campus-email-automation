@@ -88,6 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Set session data
+      await new Promise<void>((resolve, reject) => req.session.regenerate(error => error ? reject(error) : resolve()));
       req.session.userId = user.id;
       
       // Log successful login
@@ -95,13 +96,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'INSERT INTO login_history (username, ip_address, user_agent, status) VALUES ($1, $2, $3, $4)',
         [username, ipAddress, userAgent, 'SUCCESS']
       );
-      
-      console.log('✅ Login successful:', {
-        userId: user.id,
-        username: user.username,
-        sessionId: req.sessionID,
-        sessionData: req.session
-      });
       
       res.json({ 
         message: "Login successful",
@@ -141,6 +135,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Logged out successfully" });
     });
   });
+
+  // All campaign, contact, configuration and send routes require a session.
+  app.use("/api", requireAuth);
 
   // Get campaigns
   app.get("/api/campaigns", async (req, res) => {
@@ -221,7 +218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const config = await storage.getEmailConfig();
       res.json({
         ...stats,
-        dailyLimit: config?.dailyLimit || 1500,
+        dailyLimit: config?.dailyLimit ?? 150,
         usedToday: config?.usedToday || 0,
       });
     } catch (error) {
@@ -355,7 +352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               fieldsObj = JSON.parse(student.additionalFields);
               console.log('   Parsed as JSON:', fieldsObj);
             } catch (e) {
-              console.log('   Failed to parse as JSON, skipping:', e.message);
+              console.log('   Failed to parse as JSON, skipping:', e instanceof Error ? e.message : String(e));
             }
           } else if (typeof student.additionalFields === 'object' && student.additionalFields !== null) {
             fieldsObj = student.additionalFields;
@@ -422,7 +419,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Campaign ID is required" });
       }
 
-      const parsedCampaignId = parseInt(campaignId) || 1; // Default campaign ID for now
+      const parsedCampaignId = Number(campaignId);
+      if (!Number.isSafeInteger(parsedCampaignId) || parsedCampaignId <= 0 || !await storage.getCampaignById(parsedCampaignId)) return res.status(400).json({error: "Select a valid campaign"});
       const validation = await csvService.parseFile(req.file.buffer, req.file.originalname, { campaignId: parsedCampaignId });
 
       if (!validation.valid) {
@@ -442,8 +440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }));
 
       // Clear existing data for this campaign and insert new
-      await storage.deleteAllStudents(parseInt(campaignId));
-      const students = await storage.createStudents(studentsWithCampaign);
+      const students = await storage.replaceCampaignStudents(parsedCampaignId, studentsWithCampaign);
 
       // Log activity
       await storage.createActivityLog({
@@ -475,6 +472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Subject and message are required" });
       }
 
+      if (!Number.isSafeInteger(Number(campaignId)) || Number(campaignId) <= 0) return res.status(400).json({error: "Select a campaign before sending"});
       // Use campaign ID if provided
       let students;
       if (targetSection === 'all') {
@@ -486,6 +484,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (students.length === 0) {
         return res.status(400).json({ error: "No students found for the selected section" });
       }
+
+      const config = await storage.getEmailConfig();
+      if (!config) return res.status(400).json({error: "Configure a sender before sending"});
+      const remaining = Math.max(0, (config.dailyLimit ?? 150) - (config.usedToday ?? 0));
+      if (students.length > remaining) return res.status(400).json({error: `This campaign has ${students.length} recipients but only ${remaining} sends remain in the app cap today.`});
 
       // Create email logs for tracking
       const emailLogs: any[] = [];
@@ -535,12 +538,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           for (const log of emailLogs) {
             try {
-              await emailService.sendEmail({
+              const sendResult = await emailService.sendEmail({
                 to: log.email,
                 subject: log.subject,
                 text: log.message,
               });
               
+              if (!sendResult.success) throw new Error(sendResult.error || 'Mail server rejected the message');
               await storage.updateEmailLogStatus(log.id, 'sent');
             } catch (error) {
               await storage.updateEmailLogStatus(
@@ -614,12 +618,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Send email
       try {
-        await emailService.sendEmail({
+        const sendResult = await emailService.sendEmail({
           to: student.email,
           subject: personalizedSubject,
           text: personalizedMessage,
         });
         
+        if (!sendResult.success) throw new Error(sendResult.error || 'Mail server rejected the message');
         await storage.updateEmailLogStatus(log.id, 'sent');
         res.json({ message: "Email sent successfully" });
       } catch (error) {
@@ -643,7 +648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!config) {
         return res.json({
           senderEmail: '',
-          dailyLimit: 1500,
+          dailyLimit: 150,
           usedToday: 0,
           configured: false
         });
@@ -673,13 +678,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await emailService.initialize();
 
       // Send test email
-      await emailService.sendEmail({
+      const sendResult = await emailService.sendEmail({
         to: testEmail,
         subject: subject,
         text: message,
-        html: message.replace(/\n/g, '<br>')
+        html: undefined
       });
 
+      if (!sendResult.success) throw new Error(sendResult.error || "Mail server rejected the message");
       // Log activity
       await storage.createActivityLog({
         action: "TEST_EMAIL_SENT",
@@ -716,6 +722,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         usedToday: existingConfig?.usedToday || 0
       };
       
+      if (!configData.senderPassword || (existingConfig && existingConfig.senderEmail !== configData.senderEmail && !validatedData.senderPassword?.trim())) return res.status(400).json({error: "An app password is required for a new sender"});
+
       // Validate credentials if password is provided
       if (validatedData.senderPassword && validatedData.senderPassword.trim()) {
         try {
