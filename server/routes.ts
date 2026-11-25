@@ -70,8 +70,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Log failed login attempt
         await pool.query(
           'INSERT INTO login_history (username, ip_address, user_agent, status) VALUES ($1, $2, $3, $4)',
-          [username, ipAddress, userAgent, 'FAILED_USER_NOT_FOUND']
-        );
+          [username, ipAddress, userAgent, 'FAILED_NO_USER']
+        ).catch(logError => console.error('Failed to log login attempt:', logError));
         return res.status(401).json({ error: "Invalid username or password" });
       }
 
@@ -82,8 +82,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Log failed login attempt
         await pool.query(
           'INSERT INTO login_history (username, ip_address, user_agent, status) VALUES ($1, $2, $3, $4)',
-          [username, ipAddress, userAgent, 'FAILED_WRONG_PASSWORD']
-        );
+          [username, ipAddress, userAgent, 'FAILED_BAD_PASSWORD']
+        ).catch(logError => console.error('Failed to log login attempt:', logError));
         return res.status(401).json({ error: "Invalid username or password" });
       }
 
